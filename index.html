@@ -24,6 +24,47 @@
 </head>
 <body>
 
+  <!-- ========== TELA DE SENHA ========== -->
+  <div id="passwordScreen" class="password-screen">
+    <div class="password-box">
+      <!-- Logo -->
+      <svg class="password-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94"
+              fill="none" stroke="#004098" stroke-width="20" stroke-linecap="round"/>
+        <circle cx="135" cy="160.62" r="15" fill="#221F1F"/>
+        <circle cx="100" cy="30" r="15" fill="#E8490F"/>
+      </svg>
+
+      <h1 class="password-title">CONEXÃO<br/>PROFISSIONAL <span class="password-year">2026</span></h1>
+      <p class="password-sub">SENAI Fraiburgo · Finanças, Carreira e Mercado</p>
+
+      <div class="password-form">
+        <label for="passwordInput" class="password-label">
+          🔑 Digite a palavra-chave do evento
+        </label>
+        <input
+          type="text"
+          id="passwordInput"
+          class="password-input"
+          placeholder="palavra-chave"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+        />
+        <p class="password-error" id="passwordError" hidden></p>
+        <button class="btn-primary password-btn" id="btnEnter">
+          Entrar na galeria →
+        </button>
+      </div>
+
+      <p class="password-hint">Peça a palavra-chave para um organizador do evento.</p>
+    </div>
+  </div>
+
+  <!-- ========== CONTEÚDO DO APP (bloqueado até autenticar) ========== -->
+  <div id="appContent" hidden>
+
   <!-- ========== HEADER ========== -->
   <header class="app-header">
     <div class="header-brand">
@@ -243,6 +284,8 @@
     </svg>
     <span>Configure suas credenciais Cloudinary no arquivo <code>app.js</code> para ativar os uploads.</span>
   </div>
+
+</div><!-- /appContent -->
 
   <script src="app.js"></script>
 </body>

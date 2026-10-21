@@ -12,9 +12,15 @@
    4. Cole os valores abaixo e salve o arquivo.
    ============================================================ */
 
-const CLOUDINARY_CLOUD_NAME = 'paulo123';   // ← substitua
-const CLOUDINARY_UPLOAD_PRESET = 'juntafoto_preset';    // ← substitua
+const CLOUDINARY_CLOUD_NAME = 'paulo123';
+const CLOUDINARY_UPLOAD_PRESET = 'juntafoto_preset';
 const CLOUDINARY_FOLDER = 'conexao2026';
+
+/* ── Palavra-chave de acesso ao evento ─────────────────────
+   Altere para a senha que quiser. Apenas quem souber essa
+   palavra consegue ver as fotos e fazer upload.
+   ──────────────────────────────────────────────────────── */
+const ACCESS_PASSWORD = 'conexao2026';
 
 /* ── Intervalo de atualização automática da galeria (ms) ── */
 const GALLERY_POLL_INTERVAL = 30_000; // 30 segundos
@@ -32,6 +38,7 @@ const state = {
   isUploading: false,
   selectedFile: null,
   pollTimer: null,
+  authenticated: false,
 };
 
 /* ============================================================
@@ -76,9 +83,52 @@ document.addEventListener('DOMContentLoaded', () => {
   registerServiceWorker();
   checkConfig();
   bindEvents();
+
+  // Verifica se já autenticou nessa sessão
+  if (sessionStorage.getItem('jf_auth') === ACCESS_PASSWORD) {
+    unlockApp();
+  } else {
+    showPasswordScreen();
+  }
+});
+
+/* ============================================================
+   Tela de senha
+   ============================================================ */
+function showPasswordScreen() {
+  document.getElementById('passwordScreen').hidden = false;
+  document.getElementById('appContent').hidden = true;
+  setTimeout(() => document.getElementById('passwordInput').focus(), 300);
+}
+
+function unlockApp() {
+  state.authenticated = true;
+  document.getElementById('passwordScreen').hidden = true;
+  document.getElementById('appContent').hidden = false;
   loadPhotos();
   startPolling();
-});
+}
+
+function checkPassword() {
+  const input = document.getElementById('passwordInput').value.trim().toLowerCase();
+  const correct = ACCESS_PASSWORD.toLowerCase();
+
+  if (input === correct) {
+    sessionStorage.setItem('jf_auth', ACCESS_PASSWORD);
+    document.getElementById('passwordError').hidden = true;
+    const btn = document.getElementById('btnEnter');
+    btn.textContent = '✓ Entrando…';
+    btn.disabled = true;
+    setTimeout(unlockApp, 500);
+  } else {
+    const errEl = document.getElementById('passwordError');
+    errEl.hidden = false;
+    errEl.textContent = 'Palavra-chave incorreta. Tente novamente.';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordInput').focus();
+    if (navigator.vibrate) navigator.vibrate(200);
+  }
+}
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -99,6 +149,12 @@ function checkConfig() {
    Eventos
    ============================================================ */
 function bindEvents() {
+  // Tela de senha
+  document.getElementById('btnEnter').addEventListener('click', checkPassword);
+  document.getElementById('passwordInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') checkPassword();
+  });
+
   // Botões que abrem o modal de upload
   $('btnUploadHeader').addEventListener('click', openUploadModal);
   $('btnUploadHero').addEventListener('click', openUploadModal);

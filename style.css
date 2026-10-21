@@ -674,3 +674,124 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ============================================================
+   Tela de senha
+   ============================================================ */
+.password-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: linear-gradient(160deg, #004098 0%, #002a64 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 100dvh;
+}
+
+.password-box {
+  background: var(--white);
+  border-radius: 24px;
+  padding: 36px 28px 32px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: scaleIn .25s ease;
+}
+
+.password-logo {
+  width: 72px;
+  height: 72px;
+}
+
+.password-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--blue);
+  text-align: center;
+  line-height: 1.2;
+  letter-spacing: .5px;
+}
+
+.password-year {
+  display: inline-block;
+  background: var(--orange);
+  color: var(--white);
+  font-size: 1rem;
+  padding: 0 10px;
+  border-radius: 20px;
+  vertical-align: middle;
+}
+
+.password-sub {
+  font-size: .8rem;
+  color: var(--gray);
+  text-align: center;
+  font-weight: 500;
+}
+
+.password-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.password-label {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--graphite);
+}
+
+.password-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2.5px solid #dde5f0;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--graphite);
+  text-align: center;
+  letter-spacing: 2px;
+  outline: none;
+  transition: border-color var(--transition);
+  -webkit-appearance: none;
+  background: var(--white);
+}
+
+.password-input:focus {
+  border-color: var(--blue);
+}
+
+.password-error {
+  color: #d32f2f;
+  font-size: .84rem;
+  font-weight: 600;
+  background: #fff0f0;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  border-left: 4px solid #d32f2f;
+  text-align: left;
+}
+
+.password-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1rem;
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+}
+
+.password-hint {
+  font-size: .75rem;
+  color: #aaa;
+  text-align: center;
+  margin-top: 4px;
+}
