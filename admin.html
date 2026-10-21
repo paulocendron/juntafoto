@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#004098" />
+  <title>JuntaFoto · Admin</title>
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css?v=1" />
+</head>
+<body>
+
+  <!-- ========== LOGIN DO ADMIN ========== -->
+  <div class="login-screen" id="loginScreen">
+    <form class="login-box" id="loginForm" autocomplete="off">
+      <svg class="login-logo" viewBox="0 0 200 200" aria-hidden="true">
+        <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94" fill="none" stroke="#004098" stroke-width="22" stroke-linecap="round"/>
+        <circle cx="135" cy="160.62" r="16" fill="#221F1F"/>
+        <circle cx="100" cy="30" r="16" fill="#E8490F"/>
+      </svg>
+      <h1>Painel do administrador</h1>
+      <p class="muted">JuntaFoto · Conexão Profissional 2026</p>
+      <label for="adminPassword">Senha do administrador</label>
+      <input type="password" id="adminPassword" autocomplete="current-password" required />
+      <p class="form-error" id="loginError" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="btnLogin">Entrar</button>
+
+      <!-- Instruções quando as variáveis ainda não foram cadastradas na Vercel -->
+      <div class="setup-box" id="setupBox" hidden>
+        <strong>Falta configurar o servidor</strong>
+        <p>Na Vercel, abra o projeto → <b>Settings → Environment Variables</b> e cadastre:</p>
+        <ul>
+          <li><code>CLOUDINARY_API_KEY</code> e <code>CLOUDINARY_API_SECRET</code> — no Cloudinary, em <b>Settings → API Keys</b></li>
+          <li><code>ADMIN_PASSWORD</code> — a senha deste painel (você escolhe)</li>
+        </ul>
+        <p>Depois faça um <b>Redeploy</b> do projeto.</p>
+      </div>
+      <a class="link-muted" href="./">← Voltar para a galeria</a>
+    </form>
+  </div>
+
+  <!-- ========== PAINEL ========== -->
+  <div id="adminApp" hidden>
+    <header class="admin-header">
+      <div class="brand">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round"/>
+          <circle cx="135" cy="160.62" r="16" fill="#221F1F"/>
+          <circle cx="100" cy="30" r="16" fill="#E8490F"/>
+        </svg>
+        <div>
+          <span class="brand-title">JuntaFoto</span>
+          <span class="brand-sub">Administrador</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a class="btn btn-header" href="./" target="_blank" rel="noopener">Ver galeria ↗</a>
+        <button class="btn btn-header" id="btnLogout">Sair</button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="overview" role="tab">📊 Visão geral</button>
+      <button class="tab" data-tab="photos" role="tab">🖼️ Fotos <span class="tab-count" id="tabCountPhotos">0</span></button>
+      <button class="tab" data-tab="albums" role="tab">📁 Álbuns <span class="tab-count" id="tabCountAlbums">0</span></button>
+      <button class="tab" data-tab="settings" role="tab">⚙️ Configurações</button>
+    </nav>
+
+    <main class="admin-main">
+      <div class="loading" id="loading"><div class="spinner"></div> Carregando fotos…</div>
+      <p class="notice" id="truncatedNotice" hidden>Mostrando as 3.000 fotos mais recentes.</p>
+
+      <!-- ===== VISÃO GERAL ===== -->
+      <section class="panel" id="panel-overview">
+        <div class="stats" id="stats"></div>
+
+        <div class="cards-row">
+          <div class="card">
+            <h3>Ações rápidas</h3>
+            <div class="quick-actions">
+              <button class="btn btn-primary" id="qaUpload">⬆️ Enviar fotos</button>
+              <button class="btn" id="qaPending">✅ Revisar pendentes</button>
+              <button class="btn" id="qaZipAll">⬇️ Baixar todas (.zip)</button>
+              <button class="btn" id="qaCsv">📄 Exportar lista (CSV)</button>
+              <button class="btn" id="qaToggleUploads"></button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Armazenamento (Cloudinary)</h3>
+            <div id="usage" class="muted">Carregando…</div>
+          </div>
+        </div>
+
+        <div class="cards-row">
+          <div class="card">
+            <h3>Quem mais enviou</h3>
+            <ol class="ranking" id="ranking"></ol>
+          </div>
+          <div class="card">
+            <h3>Últimas fotos</h3>
+            <div class="mini-grid" id="recent"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== FOTOS ===== -->
+      <section class="panel" id="panel-photos" hidden>
+        <div class="toolbar">
+          <input type="search" id="fSearch" placeholder="Buscar por autor ou legenda…" />
+          <select id="fAlbum" aria-label="Filtrar por álbum"></select>
+          <select id="fStatus" aria-label="Filtrar por situação">
+            <option value="">Todas as situações</option>
+            <option value="visible">Visíveis na galeria</option>
+            <option value="pending">Pendentes de aprovação</option>
+            <option value="hidden">Ocultas</option>
+            <option value="featured">Destaques</option>
+          </select>
+          <select id="fSort" aria-label="Ordenar">
+            <option value="new">Mais recentes</option>
+            <option value="old">Mais antigas</option>
+            <option value="author">Autor (A–Z)</option>
+          </select>
+          <button class="btn btn-primary" id="btnUpload">⬆️ Enviar fotos</button>
+          <button class="btn" id="btnReload" title="Recarregar do Cloudinary">↻</button>
+        </div>
+
+        <div class="result-bar">
+          <span id="resultCount">0 fotos</span>
+          <button class="btn-link" id="btnSelectAll">Selecionar todas</button>
+        </div>
+
+        <div class="bulk-bar" id="bulkBar" hidden>
+          <strong id="bulkCount">0 selecionadas</strong>
+          <button class="btn btn-sm" data-bulk="approve">✅ Aprovar</button>
+          <button class="btn btn-sm" data-bulk="show">👁️ Mostrar</button>
+          <button class="btn btn-sm" data-bulk="hide">🙈 Ocultar</button>
+          <button class="btn btn-sm" data-bulk="feature">⭐ Destacar</button>
+          <button class="btn btn-sm" data-bulk="unfeature">☆ Tirar destaque</button>
+          <select class="btn-sm" id="bulkAlbum" aria-label="Mover para álbum"></select>
+          <button class="btn btn-sm" data-bulk="author">✏️ Autor</button>
+          <button class="btn btn-sm" data-bulk="zip">⬇️ .zip</button>
+          <button class="btn btn-sm btn-danger" data-bulk="delete">🗑️ Excluir</button>
+          <button class="btn-link" data-bulk="clear">Limpar seleção</button>
+        </div>
+
+        <div class="photo-grid" id="photoGrid"></div>
+        <p class="empty" id="photosEmpty" hidden>Nenhuma foto encontrada com esses filtros.</p>
+      </section>
+
+      <!-- ===== ÁLBUNS ===== -->
+      <section class="panel" id="panel-albums" hidden>
+        <form class="card album-form" id="albumForm">
+          <h3>Novo álbum</h3>
+          <div class="form-row">
+            <input type="text" id="newAlbumName" placeholder="Nome do álbum (ex.: Palestra de abertura)" maxlength="60" required />
+            <input type="text" id="newAlbumDesc" placeholder="Descrição (opcional)" maxlength="300" />
+            <button type="submit" class="btn btn-primary">Criar álbum</button>
+          </div>
+        </form>
+        <div class="album-grid" id="albumGrid"></div>
+      </section>
+
+      <!-- ===== CONFIGURAÇÕES ===== -->
+      <section class="panel" id="panel-settings" hidden>
+        <form class="card settings" id="settingsForm">
+          <h3>Acesso dos participantes</h3>
+          <label for="sPassword">Palavra-chave do evento</label>
+          <input type="text" id="sPassword" required maxlength="60" />
+          <p class="hint">É a palavra que os participantes digitam para entrar na galeria.</p>
+
+          <label for="sSession">Pedir a palavra-chave de novo após quantos minutos sem usar o app?</label>
+          <input type="number" id="sSession" min="1" max="240" required />
+
+          <h3>Envio de fotos</h3>
+          <label class="switch"><input type="checkbox" id="sUploadsOpen" /> <span>Envios abertos (participantes podem enviar fotos)</span></label>
+          <label class="switch"><input type="checkbox" id="sModeration" /> <span>Moderação: novas fotos só aparecem na galeria depois de aprovadas</span></label>
+
+          <label for="sDefaultAlbum">Álbum padrão para novos envios</label>
+          <select id="sDefaultAlbum"></select>
+
+          <button type="submit" class="btn btn-primary">Salvar configurações</button>
+          <p class="hint">A senha deste painel é a variável <code>ADMIN_PASSWORD</code> na Vercel.</p>
+        </form>
+
+        <div class="card danger-zone">
+          <h3>Zona de perigo</h3>
+          <p>Exclui definitivamente <b>todas</b> as fotos do evento do Cloudinary. Não tem como desfazer.</p>
+          <button class="btn btn-danger" id="btnDeleteAll">Excluir todas as fotos…</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ========== EDITOR DE FOTO ========== -->
+  <div class="modal" id="editorModal" hidden>
+    <div class="modal-box editor">
+      <button class="modal-close" data-close aria-label="Fechar">✕</button>
+      <div class="editor-image">
+        <img id="edImg" alt="" />
+        <button class="nav-btn prev" id="edPrev" aria-label="Foto anterior">‹</button>
+        <button class="nav-btn next" id="edNext" aria-label="Próxima foto">›</button>
+        <div class="rotate-bar">
+          <button class="btn btn-sm" id="edRotL">⟲ Girar</button>
+          <button class="btn btn-sm" id="edRotR">Girar ⟳</button>
+        </div>
+      </div>
+      <form class="editor-form" id="editorForm">
+        <div class="badges" id="edBadges"></div>
+        <label for="edAuthor">Autor</label>
+        <input type="text" id="edAuthor" maxlength="40" />
+        <label for="edCaption">Legenda</label>
+        <textarea id="edCaption" rows="3" maxlength="300" placeholder="Aparece ao abrir a foto na galeria"></textarea>
+        <label for="edAlbum">Álbum</label>
+        <select id="edAlbum"></select>
+        <label class="switch"><input type="checkbox" id="edVisible" /> <span>Visível na galeria</span></label>
+        <label class="switch"><input type="checkbox" id="edApproved" /> <span>Aprovada</span></label>
+        <label class="switch"><input type="checkbox" id="edFeatured" /> <span>⭐ Destaque</span></label>
+        <dl class="meta" id="edMeta"></dl>
+        <div class="editor-actions">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn" id="edCover">Usar como capa do álbum</button>
+          <a class="btn" id="edDownload" target="_blank" rel="noopener">⬇️ Baixar</a>
+          <button type="button" class="btn" id="edCopy">🔗 Copiar link</button>
+          <button type="button" class="btn btn-danger" id="edDelete">🗑️ Excluir</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== EDITAR ÁLBUM ========== -->
+  <div class="modal" id="albumModal" hidden>
+    <form class="modal-box album-edit" id="albumEditForm">
+      <button type="button" class="modal-close" data-close aria-label="Fechar">✕</button>
+      <h2>Editar álbum</h2>
+      <label for="aeName">Nome</label>
+      <input type="text" id="aeName" maxlength="60" required />
+      <label for="aeDesc">Descrição</label>
+      <textarea id="aeDesc" rows="2" maxlength="300"></textarea>
+      <label class="switch"><input type="checkbox" id="aeHidden" /> <span>Ocultar este álbum (e suas fotos) da galeria</span></label>
+      <label class="switch"><input type="checkbox" id="aeDefault" /> <span>Álbum padrão para novos envios</span></label>
+      <label>Capa</label>
+      <div class="cover-picker" id="aeCovers"></div>
+      <div class="editor-actions">
+        <button type="submit" class="btn btn-primary">Salvar álbum</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ========== ENVIAR FOTOS ========== -->
+  <div class="modal" id="uploadModal" hidden>
+    <div class="modal-box upload">
+      <button class="modal-close" data-close aria-label="Fechar">✕</button>
+      <h2>Enviar fotos</h2>
+      <label class="drop" id="upDrop">
+        <input type="file" id="upFiles" accept="image/*" multiple hidden />
+        <span>Clique ou arraste fotos aqui</span>
+        <small class="muted">Várias de uma vez · maiores que 8 MB são reduzidas</small>
+      </label>
+      <label for="upAuthor">Autor</label>
+      <input type="text" id="upAuthor" value="Organização" maxlength="40" />
+      <label for="upAlbum">Álbum</label>
+      <select id="upAlbum"></select>
+      <label class="switch"><input type="checkbox" id="upFeatured" /> <span>⭐ Marcar como destaque</span></label>
+      <ul class="upload-list" id="upList"></ul>
+      <div class="editor-actions">
+        <button class="btn btn-primary" id="upStart" disabled>Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CONFIRMAÇÃO ========== -->
+  <div class="modal" id="confirmModal" hidden>
+    <div class="modal-box confirm">
+      <h2 id="cfTitle"></h2>
+      <p id="cfMessage"></p>
+      <label class="switch" id="cfCheckWrap" hidden><input type="checkbox" id="cfCheck" /> <span id="cfCheckLabel"></span></label>
+      <input type="text" id="cfInput" hidden />
+      <div class="editor-actions">
+        <button class="btn" id="cfCancel">Cancelar</button>
+        <button class="btn btn-primary" id="cfOk">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="imagem.js?v=6"></script>
+  <script src="admin.js?v=1"></script>
+</body>
+</html>

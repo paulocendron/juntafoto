@@ -1,9 +1,10 @@
-const CACHE_NAME = 'juntafoto-v5';
+const CACHE_NAME = 'juntafoto-v6';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './app.js?v=5',
-  './style.css?v=5',
+  './imagem.js?v=6',
+  './app.js?v=6',
+  './style.css?v=6',
   './manifest.json'
 ];
 
@@ -33,8 +34,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Não intercepta chamadas à API do Cloudinary nem requisições que não sejam GET
-  if (event.request.method !== 'GET' || url.hostname.includes('cloudinary.com')) {
+  // Não intercepta o Cloudinary, o nosso servidor (/api) nem requisições que não sejam GET
+  if (event.request.method !== 'GET' || url.hostname.includes('cloudinary.com') || url.pathname.startsWith('/api/')) {
     return;
   }
 

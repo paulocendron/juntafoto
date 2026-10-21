@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
   <title>JuntaFoto · Conexão Profissional 2026</title>
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
 
@@ -124,6 +124,9 @@
   <!-- ========== ÁREA PRINCIPAL ========== -->
   <main class="main-content" id="mainContent">
 
+    <!-- Filtro por álbum (aparece quando o admin cria álbuns) -->
+    <nav class="album-filters" id="albumFilters" aria-label="Álbuns" hidden></nav>
+
     <!-- Barra de ações da galeria -->
     <div class="gallery-toolbar" id="galleryToolbar" hidden>
       <span class="photo-count" id="photoCount">0 fotos</span>
@@ -151,6 +154,11 @@
         <polyline points="21 15 16 10 5 21"/>
       </svg>
       <p>Nenhuma foto ainda.<br/>Seja o primeiro a postar!</p>
+    </div>
+
+    <!-- Paginação -->
+    <div class="load-more-wrap">
+      <button class="btn-ghost" id="btnLoadMore" hidden>Carregar mais fotos</button>
     </div>
 
     <!-- Spinner de carregamento -->
@@ -232,6 +240,12 @@
                maxlength="40" autocomplete="nickname" />
       </div>
 
+      <!-- Álbum (aparece quando o admin cria álbuns) -->
+      <div class="form-group" id="albumGroup" hidden>
+        <label for="albumSelect">Álbum</label>
+        <select id="albumSelect"></select>
+      </div>
+
       <!-- Barra de progresso -->
       <div class="progress-wrap" id="progressWrap" hidden>
         <div class="progress-bar" id="progressBar" role="progressbar"
@@ -269,6 +283,7 @@
         <span class="viewer-author" id="viewerAuthor"></span>
         <span class="viewer-date" id="viewerDate"></span>
       </div>
+      <p class="viewer-caption" id="viewerCaption" hidden></p>
       <div class="viewer-actions">
         <a class="btn-primary btn-download" id="btnDownload" download aria-label="Baixar foto">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -310,6 +325,7 @@
 
 </div><!-- /appContent -->
 
-  <script src="app.js?v=5"></script>
+  <script src="imagem.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

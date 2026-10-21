@@ -1,0 +1,11 @@
+{
+  "name": "juntafoto",
+  "private": true,
+  "description": "JuntaFoto · Conexão Profissional 2026 — galeria + painel admin",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cloudinary": "^2.5.1"
+  }
+}
