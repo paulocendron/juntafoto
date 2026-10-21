@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fundo azul -->
+  <rect width="512" height="512" rx="80" fill="#004098"/>
+  <!-- Ícone do evento (círculo conexão) em branco -->
+  <g transform="translate(128, 128) scale(1.28)">
+    <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94"
+          fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round"/>
+    <circle cx="135" cy="160.62" r="16" fill="#221F1F"/>
+    <circle cx="100" cy="30" r="16" fill="#E8490F"/>
+  </g>
+</svg>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuração – JuntaFoto</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { background: #fff; max-width: 680px; margin: 0 auto; padding: 0 0 48px; }
+    .setup-header {
+      background: var(--blue);
+      color: #fff;
+      padding: 28px 24px 24px;
+    }
+    .setup-header h1 { font-size: 1.4rem; font-weight: 800; }
+    .setup-header p  { font-size: .9rem; opacity: .8; margin-top: 4px; }
+    .step {
+      padding: 20px 24px;
+      border-bottom: 1px solid #eee;
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--orange);
+      color: #fff;
+      font-weight: 800;
+      font-size: .95rem;
+      flex-shrink: 0;
+      margin-bottom: 10px;
+    }
+    .step h2 { font-size: 1.05rem; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+    .step p, .step li { font-size: .92rem; color: var(--graphite); line-height: 1.65; }
+    .step ul { padding-left: 18px; margin-top: 6px; }
+    .step li { margin-bottom: 4px; }
+    code {
+      background: #f0f4ff;
+      color: var(--blue);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: .88rem;
+    }
+    .code-block {
+      background: #1e2235;
+      color: #7dd3fc;
+      padding: 16px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: .85rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+    .code-block .hl { color: #fbbf24; }
+    .tip {
+      background: #fff8e1;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: .85rem;
+      color: #7c4b00;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+    .success {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: .85rem;
+      color: #166534;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+    .btn-go {
+      display: block;
+      margin: 24px auto 0;
+      width: calc(100% - 48px);
+      max-width: 360px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="setup-header">
+  <h1>⚙️ Configuração do JuntaFoto</h1>
+  <p>Siga estes passos para ativar os uploads e a galeria do evento.</p>
+</div>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <h2>Criar conta gratuita no Cloudinary</h2>
+  <p>Acesse <a href="https://cloudinary.com/users/register_free" target="_blank" rel="noopener">cloudinary.com/users/register_free</a> e crie uma conta gratuita.</p>
+  <p>O plano gratuito oferece <strong>25 GB de armazenamento</strong> e <strong>25 GB de banda/mês</strong> — mais que suficiente para um evento.</p>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <h2>Anotar o Cloud Name</h2>
+  <p>Após o login, no <strong>Dashboard</strong> do Cloudinary, você verá o <strong>Cloud Name</strong> no topo da tela. Anote esse valor — ex.: <code>meuevento123</code>.</p>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <h2>Criar um Upload Preset sem assinatura</h2>
+  <ul>
+    <li>No menu lateral clique em <strong>Settings → Upload</strong></li>
+    <li>Role até <strong>"Upload presets"</strong> e clique em <strong>"Add upload preset"</strong></li>
+    <li>Configure assim:</li>
+  </ul>
+  <div style="overflow-x:auto;margin-top:10px;">
+    <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
+      <tr style="background:#f0f4ff;">
+        <th style="padding:8px 12px;text-align:left;color:var(--blue);">Campo</th>
+        <th style="padding:8px 12px;text-align:left;color:var(--blue);">Valor</th>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">Preset name</td>
+        <td style="padding:8px 12px;"><code>juntafoto_preset</code></td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">Signing mode</td>
+        <td style="padding:8px 12px;"><strong>Unsigned</strong></td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">Folder</td>
+        <td style="padding:8px 12px;"><code>conexao2026</code></td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;">Allowed formats</td>
+        <td style="padding:8px 12px;"><code>jpg, png, heic, webp</code></td>
+      </tr>
+    </table>
+  </div>
+  <p style="margin-top:10px;">Clique em <strong>Save</strong>. O nome do preset é o que você vai usar no app.</p>
+</div>
+
+<div class="step">
+  <div class="step-num">4</div>
+  <h2>Configurar as credenciais no app.js</h2>
+  <p>Abra o arquivo <code>app/app.js</code> e substitua as linhas no topo:</p>
+  <div class="code-block">
+const CLOUDINARY_CLOUD_NAME = <span class="hl">'SEU_CLOUD_NAME'</span>;
+const CLOUDINARY_UPLOAD_PRESET = <span class="hl">'SEU_PRESET'</span>;
+  </div>
+  <p style="margin-top:10px;">Exemplo com os valores acima:</p>
+  <div class="code-block">
+const CLOUDINARY_CLOUD_NAME = <span class="hl">'meuevento123'</span>;
+const CLOUDINARY_UPLOAD_PRESET = <span class="hl">'juntafoto_preset'</span>;
+  </div>
+  <div class="tip">
+    ℹ️ O Upload Preset <strong>Unsigned</strong> é seguro para uso público — ele só permite upload para a pasta configurada. Não é uma chave de API secreta.
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">5</div>
+  <h2>Hospedar o app (3 opções gratuitas)</h2>
+  <ul>
+    <li><strong>GitHub Pages</strong> — suba a pasta <code>app/</code> num repositório público e ative o Pages nas configurações. URL: <code>seuusuario.github.io/juntafoto</code></li>
+    <li><strong>Netlify Drop</strong> — acesse <a href="https://app.netlify.com/drop" target="_blank" rel="noopener">app.netlify.com/drop</a> e arraste a pasta <code>app/</code>. Em segundos gera uma URL pública.</li>
+    <li><strong>Vercel</strong> — <code>npx vercel</code> dentro da pasta <code>app/</code>.</li>
+  </ul>
+  <div class="success">
+    ✅ <strong>Netlify Drop é o mais rápido</strong> — sem conta, sem configuração, 30 segundos para ter o app no ar.
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">6</div>
+  <h2>Gerar o QR Code para o evento</h2>
+  <p>Com a URL pública em mãos, acesse <a href="https://qr.io" target="_blank" rel="noopener">qr.io</a> ou <a href="https://www.qrcode-monkey.com" target="_blank" rel="noopener">qrcode-monkey.com</a> e gere um QR Code com as cores do evento:</p>
+  <ul>
+    <li>Cor do QR: <code>#004098</code> (azul)</li>
+    <li>Fundo: <code>#ffffff</code></li>
+  </ul>
+  <p style="margin-top:8px;">Imprima no banner, crachá e telão do evento.</p>
+</div>
+
+<div class="step">
+  <div class="step-num">7</div>
+  <h2>Como os participantes acessam</h2>
+  <ul>
+    <li><strong>Android:</strong> abre no Chrome → menu ⋮ → "Adicionar à tela inicial"</li>
+    <li><strong>iOS (iPhone):</strong> abre no Safari → ícone de compartilhar 📤 → "Adicionar à Tela de Início"</li>
+    <li>Funciona também diretamente no browser, sem instalar nada</li>
+  </ul>
+</div>
+
+<a class="btn-primary btn-go" href="index.html">Abrir o JuntaFoto →</a>
+
+</body>
+</html>

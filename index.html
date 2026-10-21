@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#004098" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="JuntaFoto" />
+  <meta name="description" content="Compartilhe fotos do Conexão Profissional 2026 – SENAI Fraiburgo" />
+
+  <!-- Open Graph para compartilhamento -->
+  <meta property="og:title" content="JuntaFoto – Conexão Profissional 2026" />
+  <meta property="og:description" content="Registre e veja todas as fotos do evento!" />
+  <meta property="og:type" content="website" />
+
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Apple Touch Icon (SVG inline como fallback) -->
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <title>JuntaFoto · Conexão Profissional 2026</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ========== HEADER ========== -->
+  <header class="app-header">
+    <div class="header-brand">
+      <!-- Ícone SVG inline do evento -->
+      <svg class="brand-icon" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94"
+              fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round"/>
+        <circle cx="135" cy="160.62" r="16" fill="#221F1F"/>
+        <circle cx="100" cy="30" r="16" fill="#E8490F"/>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-title">JuntaFoto</span>
+        <span class="brand-sub">Conexão Profissional <span class="badge-year">2026</span></span>
+      </div>
+    </div>
+    <button class="btn-upload-header" id="btnUploadHeader" aria-label="Enviar foto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ========== HERO (aparece só sem fotos) ========== -->
+  <section class="hero" id="hero" aria-label="Boas-vindas">
+    <div class="hero-inner">
+      <svg class="hero-logo" viewBox="0 0 980 420" xmlns="http://www.w3.org/2000/svg" aria-label="Logo Conexão Profissional 2026">
+        <g transform="translate(50,110)">
+          <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94"
+                fill="none" stroke="#004098" stroke-width="20" stroke-linecap="round"/>
+          <circle cx="135" cy="160.62" r="15" fill="#221F1F"/>
+          <circle cx="100" cy="30" r="15" fill="#E8490F"/>
+        </g>
+        <g font-family="'Century Gothic','Futura','Poppins','Arial',sans-serif">
+          <text x="300" y="185" font-size="62" font-weight="800" fill="#004098" letter-spacing="1">CONEXÃO</text>
+          <text x="300" y="250" font-size="62" font-weight="800" fill="#221F1F" letter-spacing="1">PROFISSIONAL</text>
+          <rect x="300" y="268" width="86" height="36" rx="18" fill="#E8490F"/>
+          <text x="343" y="292" font-size="22" font-weight="800" fill="#ffffff" text-anchor="middle">2026</text>
+          <text x="400" y="304" font-size="26" font-weight="500" fill="#5B5754">Finanças, Carreira e Mercado na Prática</text>
+          <text x="300" y="350" font-size="17" font-weight="700" fill="#E8490F" letter-spacing="3">SENAI FRAIBURGO</text>
+        </g>
+      </svg>
+      <p class="hero-tagline">Tire fotos, suba aqui e veja a memória coletiva do evento!</p>
+      <button class="btn-primary btn-hero" id="btnUploadHero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Enviar Foto
+      </button>
+    </div>
+  </section>
+
+  <!-- ========== ÁREA PRINCIPAL ========== -->
+  <main class="main-content" id="mainContent">
+
+    <!-- Barra de ações da galeria -->
+    <div class="gallery-toolbar" id="galleryToolbar" hidden>
+      <span class="photo-count" id="photoCount">0 fotos</span>
+      <button class="btn-ghost btn-refresh" id="btnRefresh" aria-label="Atualizar galeria">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
+        </svg>
+        Atualizar
+      </button>
+    </div>
+
+    <!-- Grade de fotos -->
+    <section class="gallery-grid" id="galleryGrid" aria-label="Galeria de fotos do evento">
+      <!-- Preenchido via JS -->
+    </section>
+
+    <!-- Estado vazio -->
+    <div class="empty-state" id="emptyState" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#004098" stroke-width="1.5"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <p>Nenhuma foto ainda.<br/>Seja o primeiro a postar!</p>
+    </div>
+
+    <!-- Spinner de carregamento -->
+    <div class="loading-state" id="loadingState">
+      <div class="spinner" aria-label="Carregando fotos..."></div>
+    </div>
+  </main>
+
+  <!-- ========== FAB (botão flutuante) ========== -->
+  <button class="fab" id="fabUpload" aria-label="Enviar foto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+  </button>
+
+  <!-- ========== MODAL DE UPLOAD ========== -->
+  <div class="modal-overlay" id="uploadModal" role="dialog" aria-modal="true"
+       aria-labelledby="modalTitle" hidden>
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modalTitle">Enviar Foto</h2>
+        <button class="btn-close" id="btnCloseModal" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Área de drop / preview -->
+      <div class="upload-drop-area" id="dropArea" role="button" tabindex="0"
+           aria-label="Selecionar ou arrastar foto">
+        <div class="drop-placeholder" id="dropPlaceholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#004098" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <p>Toque para tirar foto<br/>ou escolher da galeria</p>
+          <span class="drop-hint">Aceita JPG, PNG, HEIC · máx 10 MB</span>
+        </div>
+        <img class="preview-img" id="previewImg" src="" alt="Prévia da foto selecionada" hidden />
+      </div>
+
+      <!-- Input file oculto -->
+      <input type="file" id="fileInput" accept="image/*" capture="environment"
+             aria-label="Selecionar imagem" />
+
+      <!-- Nome/apelido opcional -->
+      <div class="form-group">
+        <label for="authorName">Seu nome ou apelido <span class="optional">(opcional)</span></label>
+        <input type="text" id="authorName" placeholder="Ex.: Maria, Turma A, Palestrante…"
+               maxlength="40" autocomplete="nickname" />
+      </div>
+
+      <!-- Barra de progresso -->
+      <div class="progress-wrap" id="progressWrap" hidden>
+        <div class="progress-bar" id="progressBar" role="progressbar"
+             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%"></div>
+        <span class="progress-label" id="progressLabel">Enviando…</span>
+      </div>
+
+      <!-- Mensagem de erro -->
+      <p class="upload-error" id="uploadError" role="alert" hidden></p>
+
+      <button class="btn-primary btn-send" id="btnSend" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        Enviar para a galeria
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== MODAL DE VISUALIZAÇÃO ========== -->
+  <div class="modal-overlay viewer-overlay" id="viewerModal" role="dialog" aria-modal="true"
+       aria-labelledby="viewerAuthor" hidden>
+    <div class="viewer-box">
+      <button class="btn-close viewer-close" id="btnCloseViewer" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <img class="viewer-img" id="viewerImg" src="" alt="Foto ampliada" />
+      <div class="viewer-info">
+        <span class="viewer-author" id="viewerAuthor"></span>
+        <span class="viewer-date" id="viewerDate"></span>
+      </div>
+      <div class="viewer-actions">
+        <a class="btn-primary btn-download" id="btnDownload" download aria-label="Baixar foto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Baixar
+        </a>
+        <button class="btn-ghost btn-share" id="btnShare" aria-label="Compartilhar foto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          Compartilhar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TOAST ========== -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ========== CONFIG BANNER (aparece se credenciais não configuradas) ========== -->
+  <div class="config-banner" id="configBanner" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span>Configure suas credenciais Cloudinary no arquivo <code>app.js</code> para ativar os uploads.</span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
