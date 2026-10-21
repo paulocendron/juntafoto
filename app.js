@@ -256,7 +256,7 @@ function handleFileSelected(file) {
     showUploadError('Selecione um arquivo de imagem (JPG, PNG, HEIC, etc.).');
     return;
   }
-  // Valida tamanho
+  // Valida tamanho (antes da conversão — HEIC pode ser grande)
   if (file.size > MAX_FILE_SIZE) {
     showUploadError(`O arquivo é muito grande. Máximo permitido: 10 MB.`);
     return;
@@ -278,6 +278,63 @@ function handleFileSelected(file) {
 }
 
 /* ============================================================
+   Conversão para JPEG via Canvas
+   Funciona com PNG, WEBP, GIF, BMP, HEIC* (se o browser suportar)
+   * HEIC é suportado nativamente no Safari/iOS
+   ============================================================ */
+function convertToJpeg(file, quality = 0.88) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const img = new Image();
+
+      img.onload = () => {
+        // Limita resolução máxima a 2400px no lado maior (economiza banda)
+        const MAX_DIM = 2400;
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round(height * MAX_DIM / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round(width * MAX_DIM / height);
+            height = MAX_DIM;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width  = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Fundo branco (evita transparência virar preto no JPEG)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error('Falha ao converter imagem.')); return; }
+            // Cria File com nome .jpg
+            const name = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
+            resolve(new File([blob], name, { type: 'image/jpeg' }));
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+
+      img.onerror = () => reject(new Error('Não foi possível carregar a imagem.'));
+      img.src = e.target.result;
+    };
+
+    reader.onerror = () => reject(new Error('Erro ao ler o arquivo.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
    Upload para o Cloudinary
    ============================================================ */
 async function uploadPhoto() {
@@ -295,8 +352,19 @@ async function uploadPhoto() {
   progressWrap.hidden = false;
   setProgress(0, 'Preparando…');
 
+  // Converte qualquer formato para JPEG antes de enviar
+  let fileToUpload;
+  try {
+    setProgress(5, 'Convertendo para JPEG…');
+    fileToUpload = await convertToJpeg(state.selectedFile);
+  } catch (convertErr) {
+    // Se a conversão falhar (ex.: HEIC não suportado no Android), usa o arquivo original
+    console.warn('Conversão JPEG falhou, usando arquivo original:', convertErr.message);
+    fileToUpload = state.selectedFile;
+  }
+
   const formData = new FormData();
-  formData.append('file', state.selectedFile);
+  formData.append('file', fileToUpload);
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
   // Cloudinary novo usa asset_folder; o folder também é enviado por compatibilidade

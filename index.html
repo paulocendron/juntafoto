@@ -193,13 +193,13 @@
             <circle cx="12" cy="13" r="4"/>
           </svg>
           <p>Toque para tirar foto<br/>ou escolher da galeria</p>
-          <span class="drop-hint">Aceita JPG, PNG, HEIC · máx 10 MB</span>
+          <span class="drop-hint">Câmera, galeria, PNG, HEIC… · converte para JPEG · máx 10 MB</span>
         </div>
         <img class="preview-img" id="previewImg" src="" alt="Prévia da foto selecionada" hidden />
       </div>
 
-      <!-- Input file oculto -->
-      <input type="file" id="fileInput" accept="image/*" capture="environment"
+      <!-- Input file oculto — sem capture para permitir câmera OU galeria -->
+      <input type="file" id="fileInput" accept="image/*"
              aria-label="Selecionar imagem" />
 
       <!-- Nome/apelido opcional -->
