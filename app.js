@@ -13,7 +13,7 @@ const ACCESS_PASSWORD = 'conexao2026';
 /* ── Tempo de sessão antes de pedir a senha novamente ── */
 const SESSION_TIMEOUT_MS   = 2 * 60 * 1000; // 2 minutos
 const GALLERY_POLL_INTERVAL = 30_000;        // 30 segundos
-const MAX_FILE_SIZE         = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE         = 5 * 1024 * 1024;  // 5 MB
 
 /* ============================================================
    Estado
@@ -290,7 +290,7 @@ function handleFileSelected(file) {
     return;
   }
   if (file.size > MAX_FILE_SIZE) {
-    showUploadError('O arquivo é muito grande. Máximo permitido: 10 MB.');
+    showUploadError('O arquivo é muito grande. Máximo permitido: 5 MB.');
     return;
   }
   state.selectedFile = file;
