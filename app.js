@@ -22,7 +22,8 @@ const CLOUDINARY_FOLDER = 'conexao2026';
    ──────────────────────────────────────────────────────── */
 const ACCESS_PASSWORD = 'conexao2026';
 
-/* ── Intervalo de atualização automática da galeria (ms) ── */
+/* ── Tempo de sessão em minutos ──────────────────────────── */
+const SESSION_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutos
 const GALLERY_POLL_INTERVAL = 30_000; // 30 segundos
 
 /* ── Tamanho máximo de arquivo (bytes) ── */
@@ -32,13 +33,14 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
    Estado da aplicação
    ============================================================ */
 const state = {
-  photos: [],           // lista de fotos carregadas
-  nextCursor: null,     // paginação Cloudinary
+  photos: [],
+  nextCursor: null,
   isLoading: false,
   isUploading: false,
   selectedFile: null,
   pollTimer: null,
   authenticated: false,
+  sessionTimer: null,   // timer do timeout de sessão
 };
 
 /* ============================================================
@@ -84,10 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
   checkConfig();
   bindEvents();
 
-  // Verifica se já autenticou nessa sessão
-  if (sessionStorage.getItem('jf_auth') === ACCESS_PASSWORD) {
+  // Verifica se já autenticou e se a sessão ainda é válida
+  const savedAuth = sessionStorage.getItem('jf_auth');
+  const savedTime = parseInt(sessionStorage.getItem('jf_auth_time') || '0', 10);
+  const elapsed   = Date.now() - savedTime;
+
+  if (savedAuth === ACCESS_PASSWORD && elapsed < SESSION_TIMEOUT_MS) {
     unlockApp();
   } else {
+    sessionStorage.removeItem('jf_auth');
+    sessionStorage.removeItem('jf_auth_time');
     showPasswordScreen();
   }
 });
@@ -107,6 +115,7 @@ function unlockApp() {
   document.getElementById('appContent').hidden = false;
   loadPhotos();
   startPolling();
+  startSessionTimer();
 }
 
 function checkPassword() {
@@ -115,6 +124,7 @@ function checkPassword() {
 
   if (input === correct) {
     sessionStorage.setItem('jf_auth', ACCESS_PASSWORD);
+    sessionStorage.setItem('jf_auth_time', Date.now().toString());
     document.getElementById('passwordError').hidden = true;
     const btn = document.getElementById('btnEnter');
     btn.textContent = '✓ Entrando…';
@@ -174,9 +184,15 @@ function bindEvents() {
     }
   });
 
-  // Área de drop / clique para selecionar arquivo
-  dropArea.addEventListener('click', () => fileInput.click());
-  dropArea.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+  // Área de drop (clique abre galeria por padrão)
+  dropArea.addEventListener('click', () => $('fileInput').click());
+  dropArea.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') $('fileInput').click(); });
+
+  // Botão câmera
+  $('btnCamera').addEventListener('click', () => $('fileInputCamera').click());
+
+  // Botão galeria
+  $('btnGallery').addEventListener('click', () => $('fileInput').click());
 
   // Drag & drop (desktop)
   dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.classList.add('dragover'); });
@@ -188,9 +204,15 @@ function bindEvents() {
     if (file) handleFileSelected(file);
   });
 
-  // Seleção via input
+  // Seleção via input galeria
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) handleFileSelected(fileInput.files[0]);
+  });
+
+  // Seleção via input câmera
+  $('fileInputCamera').addEventListener('change', () => {
+    const cam = $('fileInputCamera');
+    if (cam.files[0]) handleFileSelected(cam.files[0]);
   });
 
   // Enviar

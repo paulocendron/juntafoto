@@ -795,3 +795,60 @@ body {
   text-align: center;
   margin-top: 4px;
 }
+
+/* ============================================================
+   Botões de fonte (câmera / galeria)
+   ============================================================ */
+.source-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.btn-source {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 10px;
+  background: #f0f4ff;
+  border: 2px solid #dde5f0;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--blue);
+  cursor: pointer;
+  min-height: 80px;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-source svg { width: 28px; height: 28px; }
+.btn-source:active { background: #dce6ff; border-color: var(--blue); transform: scale(.96); }
+
+.btn-source-gallery {
+  background: #fff4f0;
+  border-color: #ffd5c5;
+  color: var(--orange);
+}
+.btn-source-gallery svg { stroke: var(--orange); }
+.btn-source-gallery:active { background: #ffe0d0; border-color: var(--orange); }
+
+/* Esconde a área de drop clicável quando tem botões */
+.upload-drop-area {
+  cursor: default;
+}
+
+/* Inputs invisíveis */
+#fileInput,
+#fileInputCamera {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+}
