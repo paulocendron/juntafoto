@@ -12,7 +12,7 @@
    4. Cole os valores abaixo e salve o arquivo.
    ============================================================ */
 
-const CLOUDINARY_CLOUD_NAME = 'paulo123';
+const CLOUDINARY_CLOUD_NAME = 'vyodkyhe';
 const CLOUDINARY_UPLOAD_PRESET = 'juntafoto_preset';
 const CLOUDINARY_FOLDER = 'conexao2026';
 
