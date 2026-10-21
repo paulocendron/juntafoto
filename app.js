@@ -51,18 +51,36 @@ document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
 
   /* --- Verifica sessão --- */
-  const savedAuth = sessionStorage.getItem('jf_auth');
-  const savedTime = parseInt(sessionStorage.getItem('jf_auth_time') || '0', 10);
-  const elapsed   = Date.now() - savedTime;
-
-  if (savedAuth === ACCESS_PASSWORD && elapsed < SESSION_TIMEOUT_MS) {
+  if (sessionRemainingMs() > 0) {
     unlockApp();
   } else {
-    sessionStorage.removeItem('jf_auth');
-    sessionStorage.removeItem('jf_auth_time');
+    clearSession();
     showPasswordScreen();
   }
+
+  /* --- Revalida a sessão ao voltar para o app (celular suspende timers em segundo plano) --- */
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkSession(); });
+  window.addEventListener('focus', checkSession);
+  window.addEventListener('pageshow', checkSession);
 });
+
+/* ============================================================
+   SESSÃO
+   ============================================================ */
+function sessionRemainingMs() {
+  if (sessionStorage.getItem('jf_auth') !== ACCESS_PASSWORD) return 0;
+  const savedTime = parseInt(sessionStorage.getItem('jf_auth_time') || '0', 10);
+  return Math.max(0, SESSION_TIMEOUT_MS - (Date.now() - savedTime));
+}
+
+function clearSession() {
+  sessionStorage.removeItem('jf_auth');
+  sessionStorage.removeItem('jf_auth_time');
+}
+
+function checkSession() {
+  if (state.authenticated && sessionRemainingMs() <= 0) expireSession();
+}
 
 /* ============================================================
    TELA DE SENHA
@@ -72,6 +90,7 @@ function showPasswordScreen() {
   $('appContent').hidden     = true;
   // Limpa estado de autenticação
   state.authenticated = false;
+  clearSession();
   clearTimeout(state.sessionTimer);
   clearInterval(state.pollTimer);
   // Reseta o botão caso tenha ficado desabilitado
@@ -119,17 +138,28 @@ function checkPassword() {
    ============================================================ */
 function startSessionTimer() {
   clearTimeout(state.sessionTimer);
-  state.sessionTimer = setTimeout(() => {
-    // Fecha qualquer modal aberto
-    $('uploadModal').hidden = true;
-    $('viewerModal').hidden = true;
-    document.body.style.overflow = '';
-    // Limpa sessão e mostra tela de senha
-    sessionStorage.removeItem('jf_auth');
-    sessionStorage.removeItem('jf_auth_time');
-    showToast('Sessão expirada. Digite a palavra-chave novamente.');
-    setTimeout(showPasswordScreen, 1500);
-  }, SESSION_TIMEOUT_MS);
+  // Usa o tempo restante real (desde o login), não um novo período de 2 min
+  state.sessionTimer = setTimeout(checkSession, sessionRemainingMs() + 100);
+}
+
+function expireSession() {
+  // Não interrompe um envio em andamento: tenta de novo em alguns segundos
+  if (state.isUploading) {
+    clearTimeout(state.sessionTimer);
+    state.sessionTimer = setTimeout(checkSession, 3000);
+    return;
+  }
+  state.authenticated = false;
+  clearTimeout(state.sessionTimer);
+  clearInterval(state.pollTimer);
+  // Fecha qualquer modal aberto
+  $('uploadModal').hidden = true;
+  $('viewerModal').hidden = true;
+  document.body.style.overflow = '';
+  // Limpa sessão e mostra tela de senha
+  clearSession();
+  showToast('Sessão expirada. Digite a palavra-chave novamente.');
+  setTimeout(showPasswordScreen, 1500);
 }
 
 /* ============================================================

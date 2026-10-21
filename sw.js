@@ -1,9 +1,9 @@
-const CACHE_NAME = 'juntafoto-v1';
+const CACHE_NAME = 'juntafoto-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './app.js',
-  './style.css',
+  './app.js?v=2',
+  './style.css?v=2',
   './manifest.json'
 ];
 
@@ -29,19 +29,18 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Estratégia: cache first para assets estáticos, network first para API Cloudinary
+// Estratégia: network first (sempre pega a versão mais nova; usa o cache só se estiver offline)
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Não intercepta chamadas à API do Cloudinary
-  if (url.hostname.includes('cloudinary.com') || url.hostname.includes('res.cloudinary.com')) {
+  // Não intercepta chamadas à API do Cloudinary nem requisições que não sejam GET
+  if (event.request.method !== 'GET' || url.hostname.includes('cloudinary.com')) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
+    fetch(event.request)
+      .then((response) => {
         // Só faz cache de respostas válidas e do mesmo origin
         if (
           response &&
@@ -52,7 +51,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
