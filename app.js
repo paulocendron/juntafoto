@@ -298,15 +298,21 @@ async function uploadPhoto() {
   const formData = new FormData();
   formData.append('file', state.selectedFile);
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+  // Cloudinary novo usa asset_folder; o folder também é enviado por compatibilidade
+  formData.append('asset_folder', CLOUDINARY_FOLDER);
   formData.append('folder', CLOUDINARY_FOLDER);
 
-  // Adiciona contexto com nome do autor e timestamp
+  // Nome do autor guardado nas tags (context pode causar 401 em alguns presets)
   const author = authorName.value.trim() || 'Participante';
-  const context = `author=${author}|event=Conexão Profissional 2026`;
-  formData.append('context', context);
+  // Sanitiza o autor para usar como tag (remove espaços e caracteres especiais)
+  const authorTag = 'autor_' + author.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30);
+  formData.append('tags', `conexao2026,juntafoto,${authorTag}`);
 
-  // Tags para facilitar a busca
-  formData.append('tags', 'conexao2026,juntafoto');
+  // Tenta enviar context (ignorado silenciosamente se o preset não permitir)
+  try {
+    formData.append('context', `author=${encodeURIComponent(author)}`);
+  } catch (_) {}
 
   const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
@@ -327,7 +333,13 @@ async function uploadPhoto() {
           setProgress(100, 'Concluído!');
           resolve(JSON.parse(xhr.responseText));
         } else {
-          reject(new Error(`Erro ${xhr.status}: ${xhr.responseText}`));
+          // Tenta extrair mensagem de erro do Cloudinary
+          let msg = `Erro ${xhr.status}`;
+          try {
+            const body = JSON.parse(xhr.responseText);
+            if (body.error && body.error.message) msg = body.error.message;
+          } catch (_) {}
+          reject(new Error(msg));
         }
       });
 
