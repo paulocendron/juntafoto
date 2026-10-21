@@ -13,7 +13,7 @@ const ACCESS_PASSWORD = 'conexao2026';
 /* ── Tempo de sessão antes de pedir a senha novamente ── */
 const SESSION_TIMEOUT_MS   = 2 * 60 * 1000; // 2 minutos
 const GALLERY_POLL_INTERVAL = 30_000;        // 30 segundos
-const MAX_FILE_SIZE         = 5 * 1024 * 1024;  // 5 MB
+const MAX_FILE_SIZE         = 8 * 1024 * 1024;  // 8 MB — fotos maiores são comprimidas antes do envio
 
 /* ============================================================
    Estado
@@ -289,10 +289,6 @@ function handleFileSelected(file) {
     showUploadError('Selecione um arquivo de imagem (JPG, PNG, HEIC, etc.).');
     return;
   }
-  if (file.size > MAX_FILE_SIZE) {
-    showUploadError('O arquivo é muito grande. Máximo permitido: 5 MB.');
-    return;
-  }
   state.selectedFile = file;
   $('uploadError').hidden = true;
 
@@ -309,37 +305,55 @@ function handleFileSelected(file) {
 /* ============================================================
    CONVERSÃO PARA JPEG
    ============================================================ */
-function convertToJpeg(file, quality = 0.88) {
+/* Tentativas de compressão, da melhor qualidade para a menor, até caber em MAX_FILE_SIZE */
+const JPEG_ATTEMPTS = [
+  { maxDim: 2400, quality: 0.88 },
+  { maxDim: 2400, quality: 0.75 },
+  { maxDim: 1920, quality: 0.70 },
+  { maxDim: 1600, quality: 0.65 },
+  { maxDim: 1280, quality: 0.60 },
+];
+
+function loadImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
-      img.onload = () => {
-        const MAX_DIM = 2400;
-        let { width, height } = img;
-        if (width > MAX_DIM || height > MAX_DIM) {
-          if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM; }
-          else                { width  = Math.round(width  * MAX_DIM / height); height = MAX_DIM; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width  = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (!blob) { reject(new Error('Falha ao converter.')); return; }
-          const name = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
-          resolve(new File([blob], name, { type: 'image/jpeg' }));
-        }, 'image/jpeg', quality);
-      };
+      img.onload  = () => resolve(img);
       img.onerror = () => reject(new Error('Não foi possível carregar a imagem.'));
       img.src = e.target.result;
     };
     reader.onerror = () => reject(new Error('Erro ao ler o arquivo.'));
     reader.readAsDataURL(file);
   });
+}
+
+function renderJpeg(img, maxDim, quality) {
+  let { width, height } = img;
+  if (width > maxDim || height > maxDim) {
+    if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+    else                { width  = Math.round(width  * maxDim / height); height = maxDim; }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width  = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha ao converter.')), 'image/jpeg', quality);
+  });
+}
+
+async function convertToJpeg(file) {
+  const img  = await loadImage(file);
+  const name = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
+  for (const { maxDim, quality } of JPEG_ATTEMPTS) {
+    const blob = await renderJpeg(img, maxDim, quality);
+    if (blob.size <= MAX_FILE_SIZE) return new File([blob], name, { type: 'image/jpeg' });
+  }
+  throw new Error('Não foi possível reduzir a foto para até 8 MB.');
 }
 
 /* ============================================================
@@ -365,7 +379,8 @@ async function uploadPhoto() {
     setProgress(5, 'Convertendo para JPEG…');
     fileToUpload = await convertToJpeg(state.selectedFile);
   } catch (e) {
-    fileToUpload = state.selectedFile;
+    // Sem conversão, só envia o original se já estiver dentro do limite
+    fileToUpload = state.selectedFile.size <= MAX_FILE_SIZE ? state.selectedFile : null;
   }
 
   const author    = $('authorName').value.trim() || 'Participante';
@@ -382,6 +397,7 @@ async function uploadPhoto() {
   const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
   try {
+    if (!fileToUpload) throw new Error('Não foi possível reduzir a foto para até 8 MB. Tente outra foto.');
     await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.upload.addEventListener('progress', (e) => {
