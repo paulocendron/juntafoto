@@ -7,9 +7,9 @@ module.exports = async (req, res) => {
   }
   try {
     const config = await readConfig();
-    const parts  = [`NOT tags=${TAG_HIDDEN}`, `NOT tags=${TAG_PENDING}`];
+    const parts  = [`-tags=${TAG_HIDDEN}`, `-tags=${TAG_PENDING}`];
     // Fotos de álbuns ocultos também não aparecem
-    config.albums.filter((a) => a.hidden).forEach((a) => parts.push(`NOT tags=${ALBUM_PREFIX}${a.id}`));
+    config.albums.filter((a) => a.hidden).forEach((a) => parts.push(`-tags=${ALBUM_PREFIX}${a.id}`));
 
     const album = String(req.query.album || '');
     if (album && /^[a-z0-9_]+$/.test(album)) parts.push(`tags=${ALBUM_PREFIX}${album}`);
