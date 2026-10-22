@@ -36,8 +36,17 @@ const state = {
     moderation:     false,
     defaultAlbum:   '',
     albums:         [],
+    framesEnabled:  true,
+    hashtags:       DEFAULT_HASHTAGS,
+    shareCaption:   'Eu fui no Conexão Profissional 2026! 🚀',
   },
+  // Moldura na foto aberta e na prévia do envio
+  viewer:      { photo: null, source: null, canvas: null, token: 0 },
+  uploadFrame: { source: null, canvas: null, token: 0, preview: '' },
 };
+
+let viewerFrameCtl = null;
+let uploadFrameCtl = null;
 
 /* ── Atalho DOM — chamado APÓS DOMContentLoaded ── */
 const $ = (id) => document.getElementById(id);
@@ -59,6 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* --- Eventos --- */
   bindEvents();
+  viewerFrameCtl = createFrameControl($('viewerFrame'), updateViewerFrame);
+  uploadFrameCtl = createFrameControl($('uploadFrame'), updateUploadFrame);
 
   /* --- Configurações do evento (álbuns, tempo de sessão, envios) --- */
   await loadConfig();
@@ -296,6 +307,15 @@ function bindEvents() {
 
   /* Download e compartilhamento */
   $('btnShare').addEventListener('click', sharePhoto);
+  $('btnDownload').addEventListener('click', async (e) => {
+    if (!state.viewer.canvas) return; // sem moldura: o link baixa a foto original
+    e.preventDefault();
+    downloadBlob(await canvasToJpeg(state.viewer.canvas), 'conexao-profissional-2026.jpg');
+  });
+  $('btnCaption').addEventListener('click', () => copyToClipboard(buildShareCaption(), 'Legenda copiada! É só colar no Instagram.'));
+  $('btnShareFramedUpload').addEventListener('click', () => {
+    if (state.uploadFrame.canvas) shareFramed(state.uploadFrame.canvas);
+  });
 
   /* Visibilidade da aba */
   document.addEventListener('visibilitychange', () => {
@@ -384,6 +404,10 @@ function resetUploadModal() {
   $('uploadError').hidden   = true;
   $('uploadError').textContent = '';
   $('authorName').value     = '';
+  state.uploadFrame = { source: null, canvas: null, token: state.uploadFrame.token + 1, preview: '' };
+  uploadFrameCtl?.reset();
+  $('uploadFrame').hidden = true;
+  $('btnShareFramedUpload').hidden = true;
   // Sugere o álbum que está aberto na galeria, senão o padrão definido pelo admin
   const albums = state.config.albums || [];
   const current = albums.some((a) => a.id === state.album) ? state.album : state.config.defaultAlbum;
@@ -409,12 +433,17 @@ function handleFileSelected(file) {
   }
   state.selectedFile = file;
   $('uploadError').hidden = true;
+  state.uploadFrame = { source: null, canvas: null, token: state.uploadFrame.token + 1, preview: '' };
+  uploadFrameCtl.reset();
+  $('btnShareFramedUpload').hidden = true;
 
   const reader = new FileReader();
   reader.onload = (e) => {
+    state.uploadFrame.preview = e.target.result;
     $('previewImg').src    = e.target.result;
     $('previewImg').hidden = false;
     $('dropPlaceholder').hidden = true;
+    $('uploadFrame').hidden = !state.config.framesEnabled;
   };
   reader.readAsDataURL(file);
   $('btnSend').disabled = false;
@@ -623,6 +652,10 @@ function openViewer(photo) {
   dl.download = `conexao2026-${Date.now()}.jpg`;
   $('btnShare').dataset.url    = photo.full;
   $('btnShare').dataset.author = photo.author;
+  state.viewer = { photo, source: null, canvas: null, token: state.viewer.token + 1 };
+  viewerFrameCtl.reset();
+  $('viewerFrame').hidden = !state.config.framesEnabled;
+  $('btnCaption').hidden  = !state.config.framesEnabled;
   $('viewerModal').hidden = false;
   document.body.style.overflow = 'hidden';
 }
@@ -631,12 +664,122 @@ function closeViewer() {
   $('viewerModal').hidden = true;
   document.body.style.overflow = '';
   $('viewerImg').src = '';
+  state.viewer = { photo: null, source: null, canvas: null, token: state.viewer.token + 1 };
+}
+
+/* ============================================================
+   MOLDURA DO EVENTO (desenho em moldura.js)
+   ============================================================ */
+/* Controle "Sem moldura / Com moldura" + modelos + selo. Usado no visualizador e no envio. */
+function createFrameControl(container, onChange) {
+  const ctl = { on: false, template: FRAME_TEMPLATES[0].id, badge: true };
+
+  const toggle = document.createElement('div');
+  toggle.className = 'frame-toggle';
+  toggle.setAttribute('role', 'group');
+  toggle.setAttribute('aria-label', 'Moldura do evento');
+  const btnOff = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Sem moldura' });
+  const btnOn  = Object.assign(document.createElement('button'), { type: 'button', textContent: '✨ Com moldura' });
+  toggle.append(btnOff, btnOn);
+
+  const options = document.createElement('div');
+  options.className = 'frame-options';
+  const chips = FRAME_TEMPLATES.map((t) => {
+    const chip = Object.assign(document.createElement('button'), { type: 'button', className: 'frame-chip', textContent: t.label });
+    chip.addEventListener('click', () => { ctl.template = t.id; sync(); onChange(ctl); });
+    return chip;
+  });
+  const badgeLabel = document.createElement('label');
+  badgeLabel.className = 'frame-badge-toggle';
+  const badgeInput = Object.assign(document.createElement('input'), { type: 'checkbox', checked: true });
+  badgeLabel.append(badgeInput, ' Selo "EU FUI!"');
+  options.append(...chips, badgeLabel);
+
+  function sync() {
+    btnOff.classList.toggle('active', !ctl.on);
+    btnOn.classList.toggle('active', ctl.on);
+    btnOff.setAttribute('aria-pressed', String(!ctl.on));
+    btnOn.setAttribute('aria-pressed', String(ctl.on));
+    options.hidden = !ctl.on;
+    chips.forEach((c, i) => c.classList.toggle('active', FRAME_TEMPLATES[i].id === ctl.template));
+    badgeInput.checked = ctl.badge;
+  }
+
+  btnOff.addEventListener('click', () => { if (!ctl.on) return; ctl.on = false; sync(); onChange(ctl); });
+  btnOn.addEventListener('click',  () => { if (ctl.on) return;  ctl.on = true;  sync(); onChange(ctl); });
+  badgeInput.addEventListener('change', () => { ctl.badge = badgeInput.checked; onChange(ctl); });
+
+  ctl.reset = () => { ctl.on = false; sync(); };
+  container.replaceChildren(toggle, options);
+  sync();
+  return ctl;
+}
+
+function frameOptions(ctl, date) {
+  return { template: ctl.template, badge: ctl.badge, hashtags: state.config.hashtags, date };
+}
+
+async function updateViewerFrame(ctl) {
+  const v     = state.viewer;
+  const token = ++v.token;
+  const img   = $('viewerImg');
+  if (!ctl.on) {
+    v.canvas = null;
+    img.src  = v.photo.full;
+    return;
+  }
+  img.classList.add('is-loading');
+  try {
+    v.source = v.source || await loadFrameImage(cloudinaryUrl(v.photo, 'w_1600,q_auto'));
+    const canvas = await renderFrame(v.source, frameOptions(ctl, v.photo.createdAt));
+    if (token !== state.viewer.token) return; // trocou de foto/opção no meio do caminho
+    v.canvas = canvas;
+    img.src  = canvas.toDataURL('image/jpeg', 0.9);
+  } catch (err) {
+    showToast(err.message || 'Não foi possível aplicar a moldura.');
+  } finally {
+    img.classList.remove('is-loading');
+  }
+}
+
+async function updateUploadFrame(ctl) {
+  const u     = state.uploadFrame;
+  const token = ++u.token;
+  $('btnShareFramedUpload').hidden = !ctl.on;
+  if (!ctl.on) {
+    u.canvas = null;
+    $('previewImg').src = u.preview;
+    return;
+  }
+  try {
+    u.source = u.source || await loadImage(state.selectedFile); // loadImage em imagem.js
+    const canvas = await renderFrame(u.source, frameOptions(ctl));
+    if (token !== state.uploadFrame.token) return;
+    u.canvas = canvas;
+    $('previewImg').src = canvas.toDataURL('image/jpeg', 0.9);
+  } catch (err) {
+    showUploadError(err.message || 'Não foi possível aplicar a moldura.');
+  }
+}
+
+function buildShareCaption() {
+  return [state.config.shareCaption, state.config.hashtags].filter(Boolean).join('\n\n');
+}
+
+/* Copia a legenda (o Instagram não aceita legenda vinda de outro app) e abre o compartilhamento */
+async function shareFramed(canvas) {
+  const caption = buildShareCaption();
+  try { await navigator.clipboard?.writeText(caption); } catch (_) { /* segue sem copiar */ }
+  const result = await shareOrDownloadFramed(canvas, { caption });
+  if (result === 'shared')     showToast('📋 Legenda copiada! No Instagram, é só colar.', 4500);
+  if (result === 'downloaded') showToast('Foto baixada! A legenda foi copiada — é só colar no Instagram.', 4500);
 }
 
 /* ============================================================
    COMPARTILHAMENTO
    ============================================================ */
 async function sharePhoto() {
+  if (state.viewer.canvas) return shareFramed(state.viewer.canvas);
   const url    = $('btnShare').dataset.url;
   const author = $('btnShare').dataset.author || 'Participante';
   if (navigator.share) {
@@ -650,9 +793,9 @@ async function sharePhoto() {
   }
 }
 
-function copyToClipboard(text) {
+function copyToClipboard(text, message = 'Link copiado!') {
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => showToast('Link copiado!'));
+    navigator.clipboard.writeText(text).then(() => showToast(message));
   } else {
     const ta = Object.assign(document.createElement('textarea'), { value: text });
     Object.assign(ta.style, { position: 'fixed', opacity: '0' });
@@ -660,7 +803,7 @@ function copyToClipboard(text) {
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('Link copiado!');
+    showToast(message);
   }
 }
 

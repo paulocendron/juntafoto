@@ -9,7 +9,7 @@
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=1" />
+  <link rel="stylesheet" href="admin.css?v=2" />
 </head>
 <body>
 
@@ -181,6 +181,14 @@
           <label for="sDefaultAlbum">Álbum padrão para novos envios</label>
           <select id="sDefaultAlbum"></select>
 
+          <h3>Molduras e Instagram</h3>
+          <label class="switch"><input type="checkbox" id="sFrames" /> <span>Mostrar a opção "Com moldura" nas fotos</span></label>
+          <label for="sHashtags">Hashtags (aparecem na moldura e na legenda)</label>
+          <input type="text" id="sHashtags" maxlength="120" placeholder="#ConexaoProfissional2026 #SENAIFraiburgo" />
+          <label for="sCaption">Legenda pronta para copiar e colar no Instagram</label>
+          <textarea id="sCaption" rows="3" maxlength="500"></textarea>
+          <p class="hint">As hashtags são adicionadas no fim da legenda automaticamente.</p>
+
           <button type="submit" class="btn btn-primary">Salvar configurações</button>
           <p class="hint">A senha deste painel é a variável <code>ADMIN_PASSWORD</code> na Vercel.</p>
         </form>
@@ -287,7 +295,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="imagem.js?v=6"></script>
-  <script src="admin.js?v=1"></script>
+  <script src="imagem.js?v=7"></script>
+  <script src="admin.js?v=2"></script>
 </body>
 </html>

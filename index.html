@@ -20,7 +20,11 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
   <title>JuntaFoto · Conexão Profissional 2026</title>
-  <link rel="stylesheet" href="style.css?v=6" />
+  <!-- Fonte do evento (o @import dentro do style.css era ignorado pelos navegadores) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body>
 
@@ -205,6 +209,10 @@
         <img class="preview-img" id="previewImg" src="" alt="Prévia da foto selecionada" hidden />
       </div>
 
+      <!-- Prévia com moldura (a foto vai para a galeria sem moldura) -->
+      <div class="frame-panel" id="uploadFrame" hidden></div>
+      <button type="button" class="btn-ghost btn-share-framed" id="btnShareFramedUpload" hidden>📲 Compartilhar com moldura</button>
+
       <!-- Dois botões: câmera e galeria -->
       <div class="source-buttons">
         <button type="button" class="btn-source" id="btnCamera" aria-label="Tirar foto com a câmera">
@@ -284,6 +292,8 @@
         <span class="viewer-date" id="viewerDate"></span>
       </div>
       <p class="viewer-caption" id="viewerCaption" hidden></p>
+      <!-- Moldura do evento (montada pelo moldura.js) -->
+      <div class="frame-panel frame-panel-dark" id="viewerFrame" hidden></div>
       <div class="viewer-actions">
         <a class="btn-primary btn-download" id="btnDownload" download aria-label="Baixar foto">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -306,6 +316,7 @@
           Compartilhar
         </button>
       </div>
+      <button class="btn-link-light" id="btnCaption" hidden>📋 Copiar legenda com hashtags</button>
     </div>
   </div>
 
@@ -325,7 +336,8 @@
 
 </div><!-- /appContent -->
 
-  <script src="imagem.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="imagem.js?v=7"></script>
+  <script src="moldura.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

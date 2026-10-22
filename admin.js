@@ -823,6 +823,9 @@ function renderSettings() {
   $('sUploadsOpen').checked   = c.uploadsOpen;
   $('sModeration').checked    = c.moderation;
   $('sDefaultAlbum').value    = c.defaultAlbum;
+  $('sFrames').checked        = c.framesEnabled;
+  $('sHashtags').value        = c.hashtags;
+  $('sCaption').value         = c.shareCaption;
 }
 
 async function saveSettings(e) {
@@ -833,6 +836,9 @@ async function saveSettings(e) {
     uploadsOpen:    $('sUploadsOpen').checked,
     moderation:     $('sModeration').checked,
     defaultAlbum:   $('sDefaultAlbum').value,
+    framesEnabled:  $('sFrames').checked,
+    hashtags:       $('sHashtags').value.trim(),
+    shareCaption:   $('sCaption').value.trim(),
   });
   if (ok) toast('Configurações salvas. Os participantes recebem em até 1 minuto.');
 }

@@ -27,6 +27,9 @@ const DEFAULT_CONFIG = {
   moderation:     false,
   defaultAlbum:   '',
   albums:         [], // { id, name, description, hidden, cover }
+  framesEnabled:  true,
+  hashtags:       '#ConexaoProfissional2026 #SENAIFraiburgo',
+  shareCaption:   'Eu fui no Conexão Profissional 2026! 🚀 Finanças, Carreira e Mercado na Prática.',
 };
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
@@ -81,6 +84,9 @@ function normalizeConfig(c = {}) {
     uploadsOpen:    c.uploadsOpen !== false,
     moderation:     !!c.moderation,
     defaultAlbum:   String(c.defaultAlbum || ''),
+    framesEnabled:  c.framesEnabled !== false,
+    hashtags:       String(c.hashtags ?? DEFAULT_CONFIG.hashtags).trim().slice(0, 120),
+    shareCaption:   String(c.shareCaption ?? DEFAULT_CONFIG.shareCaption).trim().slice(0, 500),
     albums: albums
       .filter((a) => a && /^[a-z0-9_]{1,40}$/.test(a.id))
       .map((a) => ({
@@ -100,6 +106,9 @@ function publicConfig(c) {
     uploadsOpen:    c.uploadsOpen,
     moderation:     c.moderation,
     defaultAlbum:   albums.some((a) => a.id === c.defaultAlbum) ? c.defaultAlbum : '',
+    framesEnabled:  c.framesEnabled,
+    hashtags:       c.hashtags,
+    shareCaption:   c.shareCaption,
     albums,
   };
 }
