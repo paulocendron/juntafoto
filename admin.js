@@ -71,6 +71,7 @@ async function inBatches(ids, fn) {
    LOGIN
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
+  initThemeToggle((msg) => toast(msg)); // tema claro/escuro/automático (tema.js)
   bindEvents();
   bindBranding();
   if (S.token) enter();

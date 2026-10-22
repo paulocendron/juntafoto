@@ -5,21 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
   <meta name="theme-color" content="#004098" />
+  <meta name="color-scheme" content="light dark" />
+  <!-- Aplica o tema escolhido (claro/escuro) antes de desenhar a página, para não "piscar" -->
+  <script>
+    try { var jfTheme = localStorage.getItem('jf_theme'); if (jfTheme === 'light' || jfTheme === 'dark') document.documentElement.dataset.theme = jfTheme; } catch (e) {}
+  </script>
   <title>JuntaFoto · Admin</title>
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=4" />
+  <link rel="stylesheet" href="admin.css?v=5" />
 </head>
 <body data-title-prefix="JuntaFoto Admin · ">
 
   <!-- ========== LOGIN DO ADMIN ========== -->
   <div class="login-screen" id="loginScreen">
+    <button type="button" class="btn-theme btn-theme-floating" data-theme-toggle aria-label="Tema"></button>
     <form class="login-box" id="loginForm" autocomplete="off">
       <svg class="login-logo" viewBox="0 0 200 200" aria-hidden="true">
-        <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94" fill="none" stroke="#004098" stroke-width="22" stroke-linecap="round"/>
-        <circle cx="135" cy="160.62" r="16" fill="#221F1F"/>
-        <circle cx="100" cy="30" r="16" fill="#E8490F"/>
+        <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94" fill="none" stroke-width="22" stroke-linecap="round" style="stroke: var(--brand-text)"/>
+        <circle cx="135" cy="160.62" r="16" style="fill: var(--text)"/>
+        <circle cx="100" cy="30" r="16" style="fill: var(--orange)"/>
       </svg>
       <h1>Painel do administrador</h1>
       <p class="muted">JuntaFoto · Conexão Profissional 2026</p>
@@ -59,6 +65,8 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- Tema: ☀️ claro · 🌙 escuro · 🌓 automático -->
+        <button type="button" class="btn-theme" data-theme-toggle aria-label="Tema"></button>
         <a class="btn btn-header" href="./" target="_blank" rel="noopener">Ver galeria ↗</a>
         <button class="btn btn-header" id="btnLogout">Sair</button>
       </div>
@@ -438,10 +446,11 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="tema.js?v=10"></script>
   <script src="evento.js?v=8"></script>
   <script src="imagem.js?v=8"></script>
   <script src="moldura.js?v=8"></script>
   <script src="colagem.js?v=2"></script>
-  <script src="admin.js?v=4"></script>
+  <script src="admin.js?v=5"></script>
 </body>
 </html>

@@ -68,9 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('configBanner').hidden = false;
   }
 
-  /* --- Tema claro / escuro / automático --- */
-  applyTheme(getTheme());
-  document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', cycleTheme));
+  /* --- Tema claro / escuro / automático (tema.js) --- */
+  initThemeToggle((msg) => showToast(msg));
 
   /* --- Eventos --- */
   bindEvents();
@@ -96,45 +95,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('focus', checkSession);
   window.addEventListener('pageshow', checkSession);
 });
-
-/* ============================================================
-   TEMA (claro / escuro / automático) — a escolha fica salva neste aparelho
-   ============================================================ */
-const THEME_ORDER = ['auto', 'light', 'dark'];
-const THEME_INFO = {
-  auto:  { label: 'Automático (segue o celular)',
-           icon: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/>' },
-  light: { label: 'Claro',
-           icon: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>' },
-  dark:  { label: 'Escuro',
-           icon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>' },
-};
-
-function getTheme() {
-  try { return THEME_ORDER.includes(localStorage.getItem('jf_theme')) ? localStorage.getItem('jf_theme') : 'auto'; }
-  catch (_) { return 'auto'; }
-}
-
-let themeMode = 'auto';
-
-function applyTheme(mode) {
-  themeMode = mode;
-  if (mode === 'auto') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = mode;
-  const info = THEME_INFO[mode];
-  document.querySelectorAll('[data-theme-toggle]').forEach((b) => {
-    b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${info.icon}</svg>`;
-    b.title = `Tema: ${info.label} — toque para trocar`;
-    b.setAttribute('aria-label', `Tema: ${info.label}. Toque para trocar.`);
-  });
-}
-
-function cycleTheme() {
-  const next = THEME_ORDER[(THEME_ORDER.indexOf(themeMode) + 1) % THEME_ORDER.length];
-  try { localStorage.setItem('jf_theme', next); } catch (_) { /* sem armazenamento: vale só nesta visita */ }
-  applyTheme(next);
-  showToast(`Tema: ${THEME_INFO[next].label}`);
-}
 
 /* ============================================================
    CONFIGURAÇÕES DO EVENTO

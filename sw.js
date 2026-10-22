@@ -1,11 +1,12 @@
-const CACHE_NAME = 'juntafoto-v9';
+const CACHE_NAME = 'juntafoto-v10';
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './tema.js?v=10',
   './evento.js?v=8',
   './imagem.js?v=8',
   './moldura.js?v=8',
-  './app.js?v=9',
+  './app.js?v=10',
   './style.css?v=9',
   './manifest.json'
 ];

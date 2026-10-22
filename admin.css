@@ -308,3 +308,131 @@ textarea { resize: vertical; }
   .split { grid-template-columns: 1fr; }
   .preview-card { position: static; }
 }
+
+/* ============================================================
+   TEMA CLARO / ESCURO / AUTOMÁTICO (mesmo esquema do app; ver tema.js)
+   <html data-theme="light|dark"> força um tema; sem o atributo, segue o aparelho.
+   ============================================================ */
+:root {
+  --surface:     var(--white);
+  --text:        var(--graphite);
+  --brand-text:  var(--blue);
+  --warn-bg:     #fff7e6;
+  --warn-border: #f5d38f;
+  --stage:       #e9edf3;
+  --checker:     #f3f4f7;
+  --checker-2:   #ffffff;
+  --app-bg:      #f2f2f2;
+  --badge-pending:  #fff1d6;
+  --badge-hidden:   #eeeeee;
+  --badge-featured: #fff4cc;
+  --badge-featured-text: #8a6d00;
+  --danger-border: #f3c7c7;
+  --toast-bg:    var(--graphite);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg:          #0f1218;
+  --surface:     #1a1f29;
+  --line:        #313a48;
+  --blue-lt:     #1e2738;
+  --gray:        #a3adbb;
+  --text:        #e8ecf2;
+  --brand-text:  color-mix(in srgb, var(--blue) 35%, #ffffff);
+  --warn-bg:     #2e2614;
+  --warn-border: #6b5520;
+  --stage:       #11151c;
+  --checker:     #232a36;
+  --checker-2:   #1a1f29;
+  --app-bg:      #252c38;
+  --badge-pending:  #3a2c10;
+  --badge-hidden:   #2b3240;
+  --badge-featured: #3a3210;
+  --badge-featured-text: #f0d36b;
+  --danger-border: #6a2a2a;
+  --toast-bg:    #2c3442;
+  --shadow:      0 2px 10px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:          #0f1218;
+    --surface:     #1a1f29;
+    --line:        #313a48;
+    --blue-lt:     #1e2738;
+    --gray:        #a3adbb;
+    --text:        #e8ecf2;
+    --brand-text:  color-mix(in srgb, var(--blue) 35%, #ffffff);
+    --warn-bg:     #2e2614;
+    --warn-border: #6b5520;
+    --stage:       #11151c;
+    --checker:     #232a36;
+    --checker-2:   #1a1f29;
+    --app-bg:      #252c38;
+    --badge-pending:  #3a2c10;
+    --badge-hidden:   #2b3240;
+    --badge-featured: #3a3210;
+    --badge-featured-text: #f0d36b;
+    --danger-border: #6a2a2a;
+    --toast-bg:    #2c3442;
+    --shadow:      0 2px 10px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+
+/* Componentes ligados aos tokens */
+body { color: var(--text); }
+input[type="text"], input[type="password"], input[type="number"], input[type="search"], input[type="email"], select, textarea {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+input[type="email"] {
+  width: 100%; font-family: inherit; font-size: .92rem;
+  border: 2px solid var(--line); border-radius: 8px; padding: 9px 12px; margin-bottom: 14px; outline: none;
+}
+input[type="email"]:focus { border-color: var(--blue); }
+
+.btn { background: var(--surface); color: var(--brand-text); }
+.btn:hover { border-color: var(--brand-text); }
+.btn-primary, .btn-collage { background: var(--orange); color: var(--white); }
+.btn-danger { color: var(--red); border-color: var(--danger-border); }
+.btn-danger:hover { background: var(--red); color: var(--white); }
+.btn-header { background: transparent; color: var(--white); }
+.btn-link { color: var(--brand-text); }
+.bulk-bar .btn-link { color: var(--white); }
+
+.login-box, .tabs, .card, .stat, .photo-card, .album-card, .modal-box, .frame-card { background: var(--surface); }
+.login-box h1, .tab.active, .tab-count, .stat-value, .badge.album, .drop, .chip { color: var(--brand-text); }
+.chip { background: var(--surface); }
+.chip.active { background: var(--blue); color: var(--white); }
+.color-field input { background: var(--surface); }
+.preset { border-color: var(--surface); }
+
+.badge { background: var(--surface); color: var(--text); }
+.badge.pending  { background: var(--badge-pending); }
+.badge.hidden   { background: var(--badge-hidden); color: var(--gray); }
+.badge.featured { background: var(--badge-featured); color: var(--badge-featured-text); }
+.badge.album    { background: var(--blue-lt); }
+.danger-zone { border-color: var(--danger-border); }
+
+.setup-box, .notice, .advanced { background: var(--warn-bg); border-color: var(--warn-border); }
+.collage-preview, .frame-thumb { background: var(--stage); }
+.collage-loading { background: color-mix(in srgb, var(--stage) 60%, transparent); }
+.logo-box { background: repeating-conic-gradient(var(--checker) 0 25%, var(--checker-2) 0 50%) 0 0 / 16px 16px; }
+.ap-body { background: var(--app-bg); }
+.modal-close, .order-btns button { color: var(--text); }
+.nav-btn { background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--text); }
+.toast { background: var(--toast-bg); }
+.toast.error { background: var(--red); }
+
+/* ---------- Botão de tema ---------- */
+.btn-theme {
+  width: 40px; height: 40px; border-radius: 50%; border: 0; flex-shrink: 0;
+  background: rgba(255,255,255,.16); color: var(--white);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.btn-theme:hover { background: rgba(255,255,255,.28); }
+.btn-theme svg { width: 20px; height: 20px; }
+.header-actions { align-items: center; }
+.btn-theme-floating { position: fixed; top: 14px; right: 14px; z-index: 50; }
