@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#004098" />
+  <meta name="color-scheme" content="light dark" />
+  <!-- Aplica o tema escolhido (claro/escuro) antes de desenhar a página, para não "piscar" -->
+  <script>
+    try { var jfTheme = localStorage.getItem('jf_theme'); if (jfTheme === 'light' || jfTheme === 'dark') document.documentElement.dataset.theme = jfTheme; } catch (e) {}
+  </script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="JuntaFoto" />
@@ -24,12 +29,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="style.css?v=9" />
 </head>
 <body data-title-prefix="JuntaFoto · ">
 
   <!-- ========== TELA DE SENHA ========== -->
   <div id="passwordScreen" class="password-screen">
+    <button type="button" class="btn-theme btn-theme-floating" data-theme-toggle aria-label="Tema"></button>
     <div class="password-box">
       <!-- Logo (ícone padrão nas cores do evento, ou o logo enviado no painel) -->
       <svg class="password-logo ev-icon" data-ev-icon viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -83,14 +89,18 @@
         <span class="brand-sub"><span data-ev="name">Conexão Profissional</span> <span class="badge-year" data-ev="year">2026</span></span>
       </div>
     </div>
-    <button class="btn-upload-header" id="btnUploadHeader" aria-label="Enviar foto">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="17 8 12 3 7 8"/>
-        <line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
-    </button>
+    <div class="header-actions">
+      <!-- Tema: ☀️ claro · 🌙 escuro · 🌓 automático (segue o celular) -->
+      <button type="button" class="btn-theme" data-theme-toggle aria-label="Tema"></button>
+      <button class="btn-upload-header" id="btnUploadHeader" aria-label="Enviar foto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <!-- ========== HERO (aparece só sem fotos) ========== -->
@@ -151,7 +161,7 @@
 
     <!-- Estado vazio -->
     <div class="empty-state" id="emptyState" hidden>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--blue)"
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--brand-text)"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
         <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -198,12 +208,12 @@
       <!-- Área de drop / preview -->
       <div class="upload-drop-area" id="dropArea">
         <div class="drop-placeholder" id="dropPlaceholder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--blue)"
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--brand-text)"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
             <circle cx="12" cy="13" r="4"/>
           </svg>
-          <p style="color:var(--blue);font-weight:600;">Escolha uma opção abaixo</p>
+          <p style="color:var(--brand-text);font-weight:600;">Escolha uma opção abaixo</p>
           <span class="drop-hint">Converte qualquer formato para JPEG · até 8 MB (maiores são reduzidas)</span>
         </div>
         <img class="preview-img" id="previewImg" src="" alt="Prévia da foto selecionada" hidden />
@@ -344,6 +354,6 @@
   <script src="evento.js?v=8"></script>
   <script src="imagem.js?v=8"></script>
   <script src="moldura.js?v=8"></script>
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

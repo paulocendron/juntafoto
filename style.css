@@ -1011,8 +1011,8 @@ body {
 }
 
 /* ---------- Identidade do evento (cores e textos vêm do painel → Evento) ---------- */
-.ev-icon .ev-arc    { stroke: var(--blue); }
-.ev-icon .ev-dot    { fill: var(--graphite); }
+.ev-icon .ev-arc    { stroke: var(--brand-text); }
+.ev-icon .ev-dot    { fill: var(--text); }
 .ev-icon .ev-accent { fill: var(--orange); }
 .ev-icon-light .ev-arc { stroke: var(--white); }
 .ev-icon-light .ev-dot { fill: rgba(255,255,255,.4); }
@@ -1055,3 +1055,151 @@ body {
 }
 .admin-corner:hover, .admin-corner:focus-visible { opacity: 1; }
 .admin-corner svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   TEMA CLARO / ESCURO / AUTOMÁTICO
+   <html data-theme="light|dark"> força um tema; sem o atributo, segue o celular.
+   Os componentes abaixo usam estes "tokens"; o modo claro mantém as cores originais.
+   ============================================================ */
+:root {
+  --bg:          var(--gray-lt);
+  --surface:     var(--white);
+  --surface-2:   var(--gray-lt);
+  --text:        var(--graphite);
+  --text-muted:  var(--gray);
+  --text-faint:  #999;
+  --border:      #dde5f0;
+  --drop-border: #b8c9e8;
+  --brand-text:  var(--blue);
+  --soft:        #e8f0fb;
+  --soft-blue:   #f0f4ff;
+  --soft-orange: #fff4f0;
+  --soft-orange-border: #ffd5c5;
+  --placeholder: #dde5f0;
+  --placeholder-hi: #c8d5ea;
+  --error-text:  #d32f2f;
+  --error-bg:    #fff0f0;
+  --disabled-bg: #ccc;
+  --toast-bg:    var(--graphite);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg:          #0f1218;
+  --surface:     #1a1f29;
+  --surface-2:   #252c38;
+  --text:        #e8ecf2;
+  --text-muted:  #a3adbb;
+  --text-faint:  #7d8796;
+  --border:      #313a48;
+  --drop-border: #3a4659;
+  --brand-text:  color-mix(in srgb, var(--blue) 35%, #ffffff);
+  --soft:        #1e2738;
+  --soft-blue:   #1e2738;
+  --soft-orange: color-mix(in srgb, var(--orange) 14%, #1a1f29);
+  --soft-orange-border: color-mix(in srgb, var(--orange) 45%, #1a1f29);
+  --placeholder: #252c38;
+  --placeholder-hi: #2f3846;
+  --error-text:  #ff8a80;
+  --error-bg:    #3a1d1f;
+  --disabled-bg: #3a4250;
+  --toast-bg:    #2c3442;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:          #0f1218;
+    --surface:     #1a1f29;
+    --surface-2:   #252c38;
+    --text:        #e8ecf2;
+    --text-muted:  #a3adbb;
+    --text-faint:  #7d8796;
+    --border:      #313a48;
+    --drop-border: #3a4659;
+    --brand-text:  color-mix(in srgb, var(--blue) 35%, #ffffff);
+    --soft:        #1e2738;
+    --soft-blue:   #1e2738;
+    --soft-orange: color-mix(in srgb, var(--orange) 14%, #1a1f29);
+    --soft-orange-border: color-mix(in srgb, var(--orange) 45%, #1a1f29);
+    --placeholder: #252c38;
+    --placeholder-hi: #2f3846;
+    --error-text:  #ff8a80;
+    --error-bg:    #3a1d1f;
+    --disabled-bg: #3a4250;
+    --toast-bg:    #2c3442;
+    color-scheme: dark;
+  }
+}
+
+/* Componentes ligados aos tokens */
+body { background: var(--bg); color: var(--text); }
+.hero { background: linear-gradient(160deg, var(--surface) 60%, var(--soft) 100%); }
+.hero-tagline, .photo-count, .empty-state, .drop-placeholder, .progress-label, .password-sub, .hw3 { color: var(--text-muted); }
+.hw1, .modal-header h2, .drop-placeholder p, .password-title { color: var(--brand-text); }
+.hw2 { color: var(--text); }
+.drop-hint, .form-group .optional, .password-hint { color: var(--text-faint); }
+
+.btn-ghost { color: var(--brand-text); border-color: var(--brand-text); }
+.btn-primary:disabled { background: var(--disabled-bg); }
+
+.gallery-item { background: var(--placeholder); }
+.gallery-item.loading-skeleton { background: linear-gradient(90deg, var(--placeholder) 25%, var(--placeholder-hi) 50%, var(--placeholder) 75%); background-size: 200% 100%; }
+
+.modal-box, .password-box { background: var(--surface); }
+.btn-close { background: var(--surface-2); color: var(--text-muted); }
+.upload-drop-area { border-color: var(--drop-border); }
+.upload-drop-area.dragover { border-color: var(--orange); }
+
+.form-group label, .password-label, .frame-badge-toggle { color: var(--text); }
+.form-group input[type="text"], .form-group select, .password-input {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+.form-group input[type="text"]:focus, .form-group select:focus, .password-input:focus { border-color: var(--blue); }
+.progress-wrap { background: var(--soft); }
+.upload-error, .password-error { color: var(--error-text); background: var(--error-bg); border-left-color: var(--error-text); }
+
+.btn-source { background: var(--soft-blue); border-color: var(--border); color: var(--brand-text); }
+.btn-source-gallery { background: var(--soft-orange); border-color: var(--soft-orange-border); color: var(--orange); }
+
+.album-chip { background: var(--surface); border-color: var(--border); color: var(--brand-text); }
+.album-chip.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+.frame-toggle { background: var(--surface-2); }
+.frame-toggle button { color: var(--text-muted); }
+.frame-toggle button.active { color: var(--white); }
+.frame-chip { background: var(--surface); border-color: var(--border); color: var(--brand-text); }
+.frame-chip.active { background: var(--orange); border-color: var(--orange); color: var(--white); }
+
+.toast { background: var(--toast-bg); }
+.admin-corner { background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--text-muted); }
+
+/* ---------- Botão de tema (☀️ claro · 🌙 escuro · 🌓 automático) ---------- */
+.btn-theme {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255,255,255,.16);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition), transform var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-theme:active { transform: scale(.92); background: rgba(255,255,255,.28); }
+.btn-theme svg { width: 20px; height: 20px; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+
+/* Na tela de senha fica no canto superior direito */
+.btn-theme-floating {
+  position: fixed;
+  top: calc(var(--safe-top) + 14px);
+  right: 14px;
+  z-index: 300;
+}
