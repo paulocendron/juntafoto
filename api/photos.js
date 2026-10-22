@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
     let cursor = req.query.cursor || undefined;
     let scans  = 0;
     do {
-      const r = await searchPhotos(parts.join(' AND '), { cursor, maxResults: 100 });
+      const r = await searchPhotos(config.event.tag, parts.join(' AND '), { cursor, maxResults: 100 });
       photos.push(...r.photos.filter((p) => !p.hidden && !p.pending && !p.albums.some((a) => hiddenAlbums.has(a))));
       cursor = r.nextCursor;
       scans++;

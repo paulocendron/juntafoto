@@ -244,3 +244,67 @@ textarea { resize: vertical; }
   .admin-main { padding-bottom: 120px; }
   .toast { bottom: 84px; }
 }
+
+/* ---------- Chips de escolha (formato, arranjo, estilo-base) ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.chip {
+  font-family: inherit; font-size: .82rem; font-weight: 600; color: var(--blue);
+  background: var(--white); border: 2px solid var(--line); border-radius: 50px;
+  padding: 6px 14px; min-height: 36px; cursor: pointer;
+}
+.chip.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+.btn-collage { background: var(--orange); border-color: var(--orange); color: var(--white); }
+
+/* ---------- Colagem e editor de moldura (prévia + formulário) ---------- */
+.modal-box.collage { max-width: 1100px; padding: 0; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr); }
+.collage-preview { position: relative; background: #e9edf3; display: flex; align-items: center; justify-content: center; padding: 20px; min-height: 360px; }
+.collage-preview canvas { max-width: 100%; max-height: calc(100dvh - 120px); height: auto; border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.2); background: #fff; }
+.collage-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(233,237,243,.6); }
+.collage-form { padding: 22px; overflow-y: auto; max-height: calc(100dvh - 32px); }
+.collage-order { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.order-item { position: relative; width: 64px; }
+.order-item img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; display: block; }
+.order-n { position: absolute; top: 3px; left: 3px; background: var(--blue); color: var(--white); font-size: .7rem; font-weight: 700; border-radius: 10px; padding: 0 6px; }
+.order-btns { display: flex; justify-content: space-between; margin-top: 2px; }
+.order-btns button { border: 0; background: var(--bg); border-radius: 4px; font-size: .7rem; padding: 2px 8px; cursor: pointer; }
+.order-btns button:disabled { opacity: .3; cursor: default; }
+.collage-publish { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.collage-publish select { margin: 0; }
+
+/* ---------- Aba Evento ---------- */
+.split { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+.split .settings { max-width: none; margin: 0; }
+.color-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+.color-field { display: flex; align-items: center; gap: 8px; font-weight: 500; margin: 0; cursor: pointer; }
+.color-field input { width: 48px; height: 40px; padding: 2px; border: 2px solid var(--line); border-radius: 8px; background: var(--white); cursor: pointer; margin: 0; }
+.color-field input:disabled { opacity: .5; cursor: not-allowed; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.preset { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--white); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+.logo-box { display: flex; align-items: center; min-height: 80px; padding: 12px; margin-bottom: 10px; border: 2px dashed var(--line); border-radius: 10px; background: repeating-conic-gradient(#f3f4f7 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+.logo-box img { max-height: 90px; max-width: 100%; object-fit: contain; }
+.advanced { margin: 6px 0 16px; padding: 10px 14px; background: #fff7e6; border: 1px solid #f5d38f; border-radius: 10px; }
+.advanced summary { font-weight: 600; cursor: pointer; font-size: .88rem; }
+.advanced[open] summary { margin-bottom: 10px; }
+.preview-card { position: sticky; top: 130px; }
+.app-preview { border-radius: 14px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 14px; }
+.ap-header { background: var(--p, #004098); color: #fff; padding: 12px 14px; display: flex; flex-direction: column; }
+.ap-title { font-weight: 800; }
+.ap-sub { font-size: .75rem; opacity: .85; }
+.ap-body { padding: 18px; display: flex; justify-content: center; background: #f2f2f2; }
+.ap-btn { background: var(--a, #e8490f); color: #fff; font-weight: 700; border-radius: 50px; padding: 8px 20px; font-size: .85rem; }
+.frame-preview { display: block; max-width: 100%; max-height: 520px; width: auto; height: auto; margin: 0 auto; border-radius: 8px; box-shadow: var(--shadow); background: #fff; }
+
+/* ---------- Aba Molduras ---------- */
+.frames-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.frame-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+.frame-card.is-off .frame-thumb { opacity: .45; }
+.frame-thumb { width: 100%; height: 300px; object-fit: contain; background: #e9edf3; display: block; }
+
+@media (max-width: 760px) {
+  .modal-box.collage { grid-template-columns: 1fr; }
+  .collage-preview { min-height: 0; padding: 12px; }
+  .collage-preview canvas { max-height: 50dvh; }
+  .collage-form { max-height: none; }
+  .split { grid-template-columns: 1fr; }
+  .preview-card { position: static; }
+}

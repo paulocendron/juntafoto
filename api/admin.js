@@ -1,6 +1,6 @@
 /* POST /api/admin { action, ... } — todas as operações do painel do administrador */
 const {
-  cloudinary, EVENT_TAG, TAG_HIDDEN, TAG_PENDING, TAG_FEATURED, ALBUM_PREFIX,
+  cloudinary, TAG_HIDDEN, TAG_PENDING, TAG_FEATURED, ALBUM_PREFIX,
   isConfigured, missingEnv, readConfig, writeConfig, searchPhotos,
   createToken, verifyToken, safeEqual, sendError, sleep,
 } = require('./_lib');
@@ -22,14 +22,15 @@ function isAllowedTag(tag) {
 const actions = {
   /* Lista todas as fotos do evento (inclusive ocultas e pendentes) + configurações */
   async list() {
+    const config = await readConfig();
     const photos = [];
     let cursor;
     do {
-      const r = await searchPhotos('', { cursor, maxResults: 500 });
+      const r = await searchPhotos(config.event.tag, '', { cursor, maxResults: 500 });
       photos.push(...r.photos);
       cursor = r.nextCursor;
     } while (cursor && photos.length < MAX_LIST);
-    return { photos, config: await readConfig(), truncated: !!cursor };
+    return { photos, config, truncated: !!cursor };
   },
 
   /* Uso da conta Cloudinary (armazenamento, créditos) */
@@ -87,13 +88,34 @@ const actions = {
 
   /* Gera link de download .zip (fotos selecionadas, um álbum ou o evento todo) */
   async zip({ ids, album, name }) {
-    const opts = { resource_type: 'image', flatten_folders: true, target_public_id: String(name || 'fotos-conexao2026').replace(/[^\w-]/g, '_') };
+    const { event } = await readConfig();
+    const opts = { resource_type: 'image', flatten_folders: true, target_public_id: String(name || `fotos-${event.tag}`).replace(/[^\w-]/g, '_') };
     if (Array.isArray(ids) && ids.length) opts.public_ids = cleanIds(ids);
     else if (album)                       opts.tags = [`${ALBUM_PREFIX}${album}`];
-    else                                  opts.tags = [EVENT_TAG];
+    else                                  opts.tags = [event.tag];
     return { url: cloudinary.utils.download_zip_url(opts) };
   },
 };
+
+/* Login com e-mail + senha. A senha é ADMIN_PASSWORD (Vercel); os e-mails ficam na configuração.
+   Se ainda não há e-mail cadastrado, o primeiro login com a senha certa cadastra o e-mail usado. */
+async function login(body, res) {
+  const email = String(body.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Informe um e-mail válido.' });
+
+  const denied = async () => { await sleep(800); return res.status(401).json({ error: 'E-mail ou senha incorretos.' }); };
+  if (!safeEqual(String(body.password || ''), process.env.ADMIN_PASSWORD)) return denied();
+
+  const config = await readConfig();
+  let firstAccess = false;
+  if (config.adminEmails.length === 0) {
+    await writeConfig({ ...config, adminEmails: [email] });
+    firstAccess = true;
+  } else if (!config.adminEmails.includes(email)) {
+    return denied();
+  }
+  return res.status(200).json({ token: createToken(), email, firstAccess });
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -109,13 +131,7 @@ module.exports = async (req, res) => {
 
   const { action, ...body } = req.body || {};
   try {
-    if (action === 'login') {
-      if (!safeEqual(String(body.password || ''), process.env.ADMIN_PASSWORD)) {
-        await sleep(800);
-        return res.status(401).json({ error: 'Senha de administrador incorreta.' });
-      }
-      return res.status(200).json({ token: createToken() });
-    }
+    if (action === 'login') return await login(body, res);
 
     if (!verifyToken(req)) return res.status(401).json({ error: 'Sessão do admin expirada. Entre novamente.', expired: true });
     if (!actions[action])  return res.status(400).json({ error: `Ação desconhecida: ${action}` });

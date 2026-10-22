@@ -24,23 +24,23 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
-<body>
+<body data-title-prefix="JuntaFoto · ">
 
   <!-- ========== TELA DE SENHA ========== -->
   <div id="passwordScreen" class="password-screen">
     <div class="password-box">
-      <!-- Logo -->
-      <svg class="password-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94"
-              fill="none" stroke="#004098" stroke-width="20" stroke-linecap="round"/>
-        <circle cx="135" cy="160.62" r="15" fill="#221F1F"/>
-        <circle cx="100" cy="30" r="15" fill="#E8490F"/>
+      <!-- Logo (ícone padrão nas cores do evento, ou o logo enviado no painel) -->
+      <svg class="password-logo ev-icon" data-ev-icon viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path class="ev-arc" d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94" fill="none" stroke-width="20" stroke-linecap="round"/>
+        <circle class="ev-dot" cx="135" cy="160.62" r="15"/>
+        <circle class="ev-accent" cx="100" cy="30" r="15"/>
       </svg>
+      <img class="password-logo-img" data-ev-logo alt="Logo do evento" hidden />
 
-      <h1 class="password-title">CONEXÃO<br/>PROFISSIONAL <span class="password-year">2026</span></h1>
-      <p class="password-sub">SENAI Fraiburgo · Finanças, Carreira e Mercado</p>
+      <h1 class="password-title"><span data-ev="line1">CONEXÃO</span><br/><span data-ev="line2">PROFISSIONAL</span> <span class="password-year" data-ev="year">2026</span></h1>
+      <p class="password-sub" data-ev="sub">SENAI Fraiburgo · Finanças, Carreira e Mercado</p>
 
       <div class="password-form">
         <label for="passwordInput" class="password-label">
@@ -72,16 +72,15 @@
   <!-- ========== HEADER ========== -->
   <header class="app-header">
     <div class="header-brand">
-      <!-- Ícone SVG inline do evento -->
-      <svg class="brand-icon" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94"
-              fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round"/>
-        <circle cx="135" cy="160.62" r="16" fill="#221F1F"/>
-        <circle cx="100" cy="30" r="16" fill="#E8490F"/>
+      <!-- Ícone do JuntaFoto (cores do evento) -->
+      <svg class="brand-icon ev-icon ev-icon-light" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path class="ev-arc" d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94" fill="none" stroke-width="22" stroke-linecap="round"/>
+        <circle class="ev-dot" cx="135" cy="160.62" r="16"/>
+        <circle class="ev-accent" cx="100" cy="30" r="16"/>
       </svg>
       <div class="brand-text">
         <span class="brand-title">JuntaFoto</span>
-        <span class="brand-sub">Conexão Profissional <span class="badge-year">2026</span></span>
+        <span class="brand-sub"><span data-ev="name">Conexão Profissional</span> <span class="badge-year" data-ev="year">2026</span></span>
       </div>
     </div>
     <button class="btn-upload-header" id="btnUploadHeader" aria-label="Enviar foto">
@@ -97,22 +96,23 @@
   <!-- ========== HERO (aparece só sem fotos) ========== -->
   <section class="hero" id="hero" aria-label="Boas-vindas">
     <div class="hero-inner">
-      <svg class="hero-logo" viewBox="0 0 980 420" xmlns="http://www.w3.org/2000/svg" aria-label="Logo Conexão Profissional 2026">
-        <g transform="translate(50,110)">
-          <path d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94"
-                fill="none" stroke="#004098" stroke-width="20" stroke-linecap="round"/>
-          <circle cx="135" cy="160.62" r="15" fill="#221F1F"/>
-          <circle cx="100" cy="30" r="15" fill="#E8490F"/>
-        </g>
-        <g font-family="'Century Gothic','Futura','Poppins','Arial',sans-serif">
-          <text x="300" y="185" font-size="62" font-weight="800" fill="#004098" letter-spacing="1">CONEXÃO</text>
-          <text x="300" y="250" font-size="62" font-weight="800" fill="#221F1F" letter-spacing="1">PROFISSIONAL</text>
-          <rect x="300" y="268" width="86" height="36" rx="18" fill="#E8490F"/>
-          <text x="343" y="292" font-size="22" font-weight="800" fill="#ffffff" text-anchor="middle">2026</text>
-          <text x="400" y="304" font-size="26" font-weight="500" fill="#5B5754">Finanças, Carreira e Mercado na Prática</text>
-          <text x="300" y="350" font-size="17" font-weight="700" fill="#E8490F" letter-spacing="3">SENAI FRAIBURGO</text>
-        </g>
-      </svg>
+      <!-- Marca do evento (textos e cores vêm do painel → Evento) -->
+      <div class="hero-logo" role="img" aria-label="Logo do evento">
+        <img class="hero-logo-img" data-ev-logo alt="" hidden />
+        <div class="hero-brand" data-ev-icon>
+          <svg class="hero-icon ev-icon" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path class="ev-arc" d="M 87.85 168.94 A 70 70 0 1 1 165.78 123.94" fill="none" stroke-width="20" stroke-linecap="round"/>
+            <circle class="ev-dot" cx="135" cy="160.62" r="15"/>
+            <circle class="ev-accent" cx="100" cy="30" r="15"/>
+          </svg>
+          <div class="hero-words">
+            <div class="hw1" data-ev="line1">CONEXÃO</div>
+            <div class="hw2"><span data-ev="line2">PROFISSIONAL</span> <span class="hero-year" data-ev="year">2026</span></div>
+            <div class="hw3" data-ev="tagline">Finanças, Carreira e Mercado na Prática</div>
+            <div class="hw4" data-ev="place">SENAI Fraiburgo</div>
+          </div>
+        </div>
+      </div>
       <p class="hero-tagline">Tire fotos, suba aqui e veja a memória coletiva do evento!</p>
       <button class="btn-primary btn-hero" id="btnUploadHero">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -151,7 +151,7 @@
 
     <!-- Estado vazio -->
     <div class="empty-state" id="emptyState" hidden>
-      <svg viewBox="0 0 24 24" fill="none" stroke="#004098" stroke-width="1.5"
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--blue)"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
         <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -198,7 +198,7 @@
       <!-- Área de drop / preview -->
       <div class="upload-drop-area" id="dropArea">
         <div class="drop-placeholder" id="dropPlaceholder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#004098" stroke-width="1.5"
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--blue)"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
             <circle cx="12" cy="13" r="4"/>
@@ -336,8 +336,14 @@
 
 </div><!-- /appContent -->
 
-  <script src="imagem.js?v=7"></script>
-  <script src="moldura.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <!-- Acesso do administrador (discreto, no canto) -->
+  <a class="admin-corner" href="admin.html" aria-label="Área do administrador" title="Área do administrador">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+  </a>
+
+  <script src="evento.js?v=8"></script>
+  <script src="imagem.js?v=8"></script>
+  <script src="moldura.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

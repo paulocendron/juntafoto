@@ -11,8 +11,7 @@ cloudinary.config({
   secure:     true,
 });
 
-/* ── Convenções de tags no Cloudinary ── */
-const EVENT_TAG    = 'conexao2026';
+/* ── Convenções de tags no Cloudinary (a tag do evento vem da configuração: event.tag) ── */
 const TAG_HIDDEN   = 'oculta';
 const TAG_PENDING  = 'pendente';
 const TAG_FEATURED = 'destaque';
@@ -30,7 +29,32 @@ const DEFAULT_CONFIG = {
   framesEnabled:  true,
   hashtags:       '#ConexaoProfissional2026 #SENAIFraiburgo',
   shareCaption:   'Eu fui no Conexão Profissional 2026! 🚀 Finanças, Carreira e Mercado na Prática.',
+  // Identidade do evento (o app pode ser reutilizado em outros eventos trocando estes dados)
+  event: {
+    name:    'Conexão Profissional',
+    year:    '2026',
+    tagline: 'Finanças, Carreira e Mercado na Prática',
+    place:   'SENAI Fraiburgo',
+    primary: '#004098',
+    accent:  '#E8490F',
+    dark:    '#221F1F',
+    logoUrl: '',
+    tag:     'conexao2026', // as fotos do evento ficam marcadas com esta tag no Cloudinary
+  },
+  // Molduras disponíveis para os participantes (estilo-base + cores/textos próprios)
+  frames: [
+    { id: 'classica', name: 'Clássica', base: 'classica', primary: '', accent: '', title: '', subtitle: '', badgeText: 'EU FUI!', enabled: true },
+    { id: 'polaroid', name: 'Polaroid', base: 'polaroid', primary: '', accent: '', title: '', subtitle: '', badgeText: 'EU FUI!', enabled: true },
+    { id: 'stories',  name: 'Stories',  base: 'stories',  primary: '', accent: '', title: '', subtitle: '', badgeText: 'EU FUI!', enabled: true },
+  ],
+  adminEmails: [], // vazio: o primeiro login com a senha certa cadastra o e-mail
 };
+
+const FRAME_BASES = ['classica', 'polaroid', 'stories'];
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const color = (v, fallback) => (HEX.test(String(v || '')) ? String(v).toLowerCase() : fallback);
+const text  = (v, fallback, max) => String(v ?? fallback).trim().slice(0, max);
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
 
@@ -87,6 +111,10 @@ function normalizeConfig(c = {}) {
     framesEnabled:  c.framesEnabled !== false,
     hashtags:       String(c.hashtags ?? DEFAULT_CONFIG.hashtags).trim().slice(0, 120),
     shareCaption:   String(c.shareCaption ?? DEFAULT_CONFIG.shareCaption).trim().slice(0, 500),
+    event:          normalizeEvent(c.event),
+    frames:         normalizeFrames(c.frames),
+    adminEmails:    (Array.isArray(c.adminEmails) ? c.adminEmails : [])
+      .map((e) => String(e).trim().toLowerCase()).filter((e) => EMAIL.test(e)).slice(0, 20),
     albums: albums
       .filter((a) => a && /^[a-z0-9_]{1,40}$/.test(a.id))
       .map((a) => ({
@@ -99,6 +127,40 @@ function normalizeConfig(c = {}) {
   };
 }
 
+function normalizeEvent(e = {}) {
+  const d = DEFAULT_CONFIG.event;
+  const tag = String(e.tag || d.tag).toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 40);
+  return {
+    name:    text(e.name, d.name, 60) || d.name,
+    year:    text(e.year, d.year, 12),
+    tagline: text(e.tagline, d.tagline, 100),
+    place:   text(e.place, d.place, 60),
+    primary: color(e.primary, d.primary),
+    accent:  color(e.accent, d.accent),
+    dark:    color(e.dark, d.dark),
+    logoUrl: String(e.logoUrl || '').startsWith('https://res.cloudinary.com/') ? String(e.logoUrl).slice(0, 400) : '',
+    tag:     tag || d.tag,
+  };
+}
+
+function normalizeFrames(list) {
+  const frames = (Array.isArray(list) ? list : DEFAULT_CONFIG.frames)
+    .filter((f) => f && /^[a-z0-9_]{1,40}$/.test(f.id))
+    .slice(0, 24)
+    .map((f) => ({
+      id:        f.id,
+      name:      text(f.name, 'Moldura', 40) || 'Moldura',
+      base:      FRAME_BASES.includes(f.base) ? f.base : 'classica',
+      primary:   color(f.primary, ''),
+      accent:    color(f.accent, ''),
+      title:     text(f.title, '', 60),
+      subtitle:  text(f.subtitle, '', 100),
+      badgeText: text(f.badgeText, 'EU FUI!', 14) || 'EU FUI!',
+      enabled:   f.enabled !== false,
+    }));
+  return frames.length ? frames : DEFAULT_CONFIG.frames.map((f) => ({ ...f }));
+}
+
 function publicConfig(c) {
   const albums = c.albums.filter((a) => !a.hidden).map(({ id, name, description, cover }) => ({ id, name, description, cover }));
   return {
@@ -109,6 +171,8 @@ function publicConfig(c) {
     framesEnabled:  c.framesEnabled,
     hashtags:       c.hashtags,
     shareCaption:   c.shareCaption,
+    event:          c.event,
+    frames:         c.frames.filter((f) => f.enabled).map(({ enabled, ...f }) => f),
     albums,
   };
 }
@@ -142,9 +206,10 @@ function safeDecode(value) {
   try { return decodeURIComponent(value); } catch (_) { return value; }
 }
 
-async function searchPhotos(expression, { cursor, maxResults = 60 } = {}) {
+/* Busca as fotos do evento (tag = config.event.tag) */
+async function searchPhotos(eventTag, expression, { cursor, maxResults = 60 } = {}) {
   let q = cloudinary.search
-    .expression(`resource_type:image AND tags=${EVENT_TAG}${expression ? ' AND ' + expression : ''}`)
+    .expression(`resource_type:image AND tags=${eventTag}${expression ? ' AND ' + expression : ''}`)
     .sort_by('created_at', 'desc')
     .max_results(maxResults)
     .with_field('context')
@@ -193,7 +258,7 @@ function sendError(res, err, status = 500) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 module.exports = {
-  cloudinary, EVENT_TAG, TAG_HIDDEN, TAG_PENDING, TAG_FEATURED, ALBUM_PREFIX,
+  cloudinary, TAG_HIDDEN, TAG_PENDING, TAG_FEATURED, ALBUM_PREFIX,
   isConfigured, missingEnv, readConfig, writeConfig, normalizeConfig, publicConfig,
   searchPhotos, createToken, verifyToken, safeEqual, sendError, sleep,
 };

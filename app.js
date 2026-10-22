@@ -39,6 +39,8 @@ const state = {
     framesEnabled:  true,
     hashtags:       DEFAULT_HASHTAGS,
     shareCaption:   'Eu fui no Conexão Profissional 2026! 🚀',
+    event:          DEFAULT_EVENT,
+    frames:         DEFAULT_FRAMES,
   },
   // Moldura na foto aberta e na prévia do envio
   viewer:      { photo: null, source: null, canvas: null, token: 0 },
@@ -102,6 +104,10 @@ async function loadConfig() {
     clearTimeout(t);
     if (res.ok) state.config = { ...state.config, ...(await res.json()) };
   } catch (_) { /* sem servidor: usa os valores padrão */ }
+  applyEventTheme(state.config.event); // nome, cores e logo do evento (evento.js)
+  // Atualiza as molduras disponíveis, sem atrapalhar quem está com uma moldura aberta
+  if (!viewerFrameCtl?.on) viewerFrameCtl?.setFrames(state.config.frames);
+  if (!uploadFrameCtl?.on) uploadFrameCtl?.setFrames(state.config.frames);
   renderAlbumFilters();
   renderAlbumSelect();
 }
@@ -473,7 +479,7 @@ async function uploadPhoto() {
   const author    = $('authorName').value.trim() || 'Participante';
   const authorTag = 'autor_' + author.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30);
   const album     = $('albumSelect').value;
-  const tags      = ['conexao2026', 'juntafoto', authorTag];
+  const tags      = [state.config.event.tag, 'juntafoto', authorTag];
   if (album) tags.push(`album_${album}`);
   if (state.config.moderation) tags.push('pendente');
 
@@ -672,7 +678,9 @@ function closeViewer() {
    ============================================================ */
 /* Controle "Sem moldura / Com moldura" + modelos + selo. Usado no visualizador e no envio. */
 function createFrameControl(container, onChange) {
-  const ctl = { on: false, template: FRAME_TEMPLATES[0].id, badge: true };
+  const ctl = { on: false, template: '', badge: true };
+  let frames = [];
+  let chips  = [];
 
   const toggle = document.createElement('div');
   toggle.className = 'frame-toggle';
@@ -684,16 +692,11 @@ function createFrameControl(container, onChange) {
 
   const options = document.createElement('div');
   options.className = 'frame-options';
-  const chips = FRAME_TEMPLATES.map((t) => {
-    const chip = Object.assign(document.createElement('button'), { type: 'button', className: 'frame-chip', textContent: t.label });
-    chip.addEventListener('click', () => { ctl.template = t.id; sync(); onChange(ctl); });
-    return chip;
-  });
   const badgeLabel = document.createElement('label');
   badgeLabel.className = 'frame-badge-toggle';
   const badgeInput = Object.assign(document.createElement('input'), { type: 'checkbox', checked: true });
-  badgeLabel.append(badgeInput, ' Selo "EU FUI!"');
-  options.append(...chips, badgeLabel);
+  const badgeText  = document.createElement('span');
+  badgeLabel.append(badgeInput, badgeText);
 
   function sync() {
     btnOff.classList.toggle('active', !ctl.on);
@@ -701,9 +704,24 @@ function createFrameControl(container, onChange) {
     btnOff.setAttribute('aria-pressed', String(!ctl.on));
     btnOn.setAttribute('aria-pressed', String(ctl.on));
     options.hidden = !ctl.on;
-    chips.forEach((c, i) => c.classList.toggle('active', FRAME_TEMPLATES[i].id === ctl.template));
+    chips.forEach((c, i) => c.classList.toggle('active', frames[i].id === ctl.template));
     badgeInput.checked = ctl.badge;
+    const current = frames.find((f) => f.id === ctl.template);
+    badgeText.textContent = ` Selo "${current?.badgeText || 'EU FUI!'}"`;
   }
+
+  /* Molduras cadastradas no painel (muda quando o admin cria/edita molduras) */
+  ctl.setFrames = (list) => {
+    frames = list.length ? list : DEFAULT_FRAMES;
+    if (!frames.some((f) => f.id === ctl.template)) ctl.template = frames[0].id;
+    chips = frames.map((f) => {
+      const chip = Object.assign(document.createElement('button'), { type: 'button', className: 'frame-chip', textContent: f.name });
+      chip.addEventListener('click', () => { ctl.template = f.id; sync(); onChange(ctl); });
+      return chip;
+    });
+    options.replaceChildren(...chips, badgeLabel);
+    sync();
+  };
 
   btnOff.addEventListener('click', () => { if (!ctl.on) return; ctl.on = false; sync(); onChange(ctl); });
   btnOn.addEventListener('click',  () => { if (ctl.on) return;  ctl.on = true;  sync(); onChange(ctl); });
@@ -711,12 +729,21 @@ function createFrameControl(container, onChange) {
 
   ctl.reset = () => { ctl.on = false; sync(); };
   container.replaceChildren(toggle, options);
-  sync();
+  ctl.setFrames(state.config.frames);
   return ctl;
 }
 
+/* Moldura escolhida → estilo-base + tema (cores, nome e logo do evento, com as trocas da moldura) */
 function frameOptions(ctl, date) {
-  return { template: ctl.template, badge: ctl.badge, hashtags: state.config.hashtags, date };
+  const frames = state.config.frames.length ? state.config.frames : DEFAULT_FRAMES;
+  const frame  = frames.find((f) => f.id === ctl.template) || frames[0];
+  return {
+    template: frame.base,
+    badge:    ctl.badge,
+    hashtags: state.config.hashtags,
+    date,
+    theme:    buildFrameTheme(state.config.event, frame),
+  };
 }
 
 async function updateViewerFrame(ctl) {

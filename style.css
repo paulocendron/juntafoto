@@ -681,7 +681,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 500;
-  background: linear-gradient(160deg, #004098 0%, #002a64 100%);
+  background: linear-gradient(160deg, var(--blue) 0%, var(--blue-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1009,3 +1009,49 @@ body {
   padding: 4px;
   align-self: center;
 }
+
+/* ---------- Identidade do evento (cores e textos vêm do painel → Evento) ---------- */
+.ev-icon .ev-arc    { stroke: var(--blue); }
+.ev-icon .ev-dot    { fill: var(--graphite); }
+.ev-icon .ev-accent { fill: var(--orange); }
+.ev-icon-light .ev-arc { stroke: var(--white); }
+.ev-icon-light .ev-dot { fill: rgba(255,255,255,.4); }
+
+.password-logo-img { max-width: 220px; max-height: 110px; object-fit: contain; }
+
+.hero-brand { display: flex; align-items: center; gap: 16px; }
+.hero-icon  { width: 96px; height: 96px; flex-shrink: 0; }
+.hero-words { display: flex; flex-direction: column; line-height: 1.05; }
+.hw1, .hw2  { font-size: 1.7rem; font-weight: 800; letter-spacing: .5px; }
+.hw1        { color: var(--blue); }
+.hw2        { color: var(--graphite); }
+.hero-year  {
+  display: inline-block; vertical-align: middle; margin-left: 4px;
+  background: var(--orange); color: var(--white);
+  font-size: .8rem; font-weight: 800; border-radius: 20px; padding: 2px 10px;
+}
+.hw3 { margin-top: 6px; font-size: .8rem; font-weight: 500; color: var(--gray); }
+.hw4 { margin-top: 2px; font-size: .7rem; font-weight: 700; color: var(--orange); letter-spacing: 2px; text-transform: uppercase; }
+.hero-logo-img { display: block; max-width: 100%; max-height: 160px; margin: 0 auto; object-fit: contain; }
+.hero-logo { display: flex; justify-content: center; }
+
+/* ---------- Acesso do administrador (discreto, canto inferior esquerdo) ---------- */
+.admin-corner {
+  position: fixed;
+  left: 12px;
+  bottom: calc(var(--safe-bottom) + 12px);
+  z-index: 300;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray);
+  background: rgba(255,255,255,.7);
+  opacity: .35;
+  transition: opacity var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.admin-corner:hover, .admin-corner:focus-visible { opacity: 1; }
+.admin-corner svg { width: 16px; height: 16px; }

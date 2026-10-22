@@ -72,6 +72,7 @@ async function inBatches(ids, fn) {
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
+  bindBranding();
   if (S.token) enter();
   else $('adminPassword').focus();
 });
@@ -86,15 +87,17 @@ async function login(e) {
     const res  = await fetch('/api/admin', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ action: 'login', password: $('adminPassword').value }),
+      body:    JSON.stringify({ action: 'login', email: $('adminEmail').value.trim(), password: $('adminPassword').value }),
     });
     const data = await res.json().catch(() => ({}));
     if (data.notConfigured) $('setupBox').hidden = false;
     if (!res.ok) throw new Error(data.error || `Erro ${res.status}`);
     S.token = data.token;
     sessionStorage.setItem('jf_admin_token', S.token);
+    sessionStorage.setItem('jf_admin_email', data.email);
     $('adminPassword').value = '';
     enter();
+    if (data.firstAccess) toast(`Bem-vindo! ${data.email} foi cadastrado como administrador.`);
   } catch (err) {
     $('loginError').textContent = err.message;
     $('loginError').hidden = false;
@@ -107,6 +110,7 @@ async function login(e) {
 function logout() {
   S.token = '';
   sessionStorage.removeItem('jf_admin_token');
+  sessionStorage.removeItem('jf_admin_email');
   $('adminApp').hidden    = true;
   $('loginScreen').hidden = false;
   document.querySelectorAll('.modal').forEach((m) => { m.hidden = true; });
@@ -115,6 +119,7 @@ function logout() {
 function enter() {
   $('loginScreen').hidden = true;
   $('adminApp').hidden    = false;
+  $('adminWho').textContent = sessionStorage.getItem('jf_admin_email') || 'Administrador';
   loadAll();
 }
 
@@ -126,6 +131,7 @@ async function loadAll() {
     S.config = r.config;
     $('truncatedNotice').hidden = !r.truncated;
     S.selected.clear();
+    fillEventForm();
     renderAll();
   } catch (err) {
     if (S.token) toast(err.message, true);
@@ -190,6 +196,15 @@ function bindEvents() {
   drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('dragover'); addUploadFiles(e.dataTransfer.files); });
   $('upStart').addEventListener('click', startUpload);
+
+  /* Colagem */
+  let typing;
+  ['clTitle', 'clSubtitle'].forEach((id) => $(id).addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(drawCollage, 300); }));
+  $('clBadge').addEventListener('change', drawCollage);
+  $('clShuffle').addEventListener('click', () => { S.collage.photos.sort(() => Math.random() - 0.5); renderCollageOrder(); drawCollage(); });
+  $('clDownload').addEventListener('click', downloadCollage);
+  $('clShare').addEventListener('click', shareCollage);
+  $('clPublish').addEventListener('click', publishCollage);
 }
 
 function onKeydown(e) {
@@ -310,11 +325,14 @@ function confirmDialog({ title, message, okText = 'Confirmar', danger = false, c
 function renderAll() {
   $('tabCountPhotos').textContent = S.photos.length;
   $('tabCountAlbums').textContent = S.config.albums.length;
+  $('tabCountFrames').textContent = S.config.frames.length;
+  applyEventTheme(S.config.event); // o painel também usa as cores do evento
   renderAlbumSelects();
   renderOverview();
   renderPhotos();
   renderAlbums();
   renderSettings();
+  renderFrames();
 }
 
 function renderAlbumSelects() {
@@ -329,6 +347,7 @@ function renderAlbumSelects() {
   fill($('bulkAlbum'), [['', '📁 Mover para álbum…'], [NO_ALBUM, 'Tirar do álbum']]);
   fill($('edAlbum'), [['', 'Sem álbum']]);
   fill($('upAlbum'), [['', 'Sem álbum']]);
+  fill($('clAlbum'), [['', 'Sem álbum']]);
   fill($('sDefaultAlbum'), [['', 'Nenhum']]);
 }
 
@@ -517,6 +536,11 @@ async function bulk(action) {
   const ids = [...S.selected];
   if (action === 'clear') { S.selected.clear(); renderPhotos(); return; }
   if (!ids.length) return;
+  if (action === 'collage') {
+    if (ids.length < 2 || ids.length > COLLAGE_MAX) { toast(`Selecione de 2 a ${COLLAGE_MAX} fotos para a colagem.`, true); return; }
+    openCollage(S.filtered.filter((p) => S.selected.has(p.id))); // na ordem em que aparecem na tela
+    return;
+  }
 
   await run('Não foi possível concluir', async () => {
     switch (action) {
@@ -826,6 +850,7 @@ function renderSettings() {
   $('sFrames').checked        = c.framesEnabled;
   $('sHashtags').value        = c.hashtags;
   $('sCaption').value         = c.shareCaption;
+  $('sAdmins').value          = c.adminEmails.join('\n');
 }
 
 async function saveSettings(e) {
@@ -839,6 +864,7 @@ async function saveSettings(e) {
     framesEnabled:  $('sFrames').checked,
     hashtags:       $('sHashtags').value.trim(),
     shareCaption:   $('sCaption').value.trim(),
+    adminEmails:    adminEmailsFromForm(),
   });
   if (ok) toast('Configurações salvas. Os participantes recebem em até 1 minuto.');
 }
@@ -893,13 +919,30 @@ function parseUploaded(r) {
   };
 }
 
+/* Envia um arquivo ao Cloudinary com as marcações do evento e devolve a foto já no formato do painel */
+async function uploadToCloudinary(file, { author, album = '', featured = false, extraTags = [] }) {
+  const tags = [S.config.event.tag, 'juntafoto', 'autor_' + norm(author).replace(/[^a-z0-9]/g, '_').slice(0, 30), ...extraTags];
+  if (album)    tags.push(`album_${album}`);
+  if (featured) tags.push('destaque');
+  const fd = new FormData();
+  fd.append('file',          file);
+  fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  fd.append('asset_folder',  CLOUDINARY_FOLDER);
+  fd.append('folder',        CLOUDINARY_FOLDER);
+  fd.append('tags',          tags.join(','));
+  fd.append('context',       `author=${author.replace(/([|=\\])/g, '\\$1')}`);
+  const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `Erro ${res.status}`);
+  const photo = parseUploaded(data);
+  S.photos.unshift(photo);
+  return photo;
+}
+
 async function startUpload() {
   const author   = $('upAuthor').value.trim() || 'Organização';
   const album    = $('upAlbum').value;
   const featured = $('upFeatured').checked;
-  const tags     = ['conexao2026', 'juntafoto', 'autor_' + norm(author).replace(/[^a-z0-9]/g, '_').slice(0, 30)];
-  if (album)    tags.push(`album_${album}`);
-  if (featured) tags.push('destaque');
 
   $('upStart').disabled = true;
   let ok = 0;
@@ -908,17 +951,7 @@ async function startUpload() {
     item.status.className = 'muted';
     item.status.textContent = 'Enviando…';
     try {
-      const fd = new FormData();
-      fd.append('file',          await prepareForUpload(item.file));
-      fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      fd.append('asset_folder',  CLOUDINARY_FOLDER);
-      fd.append('folder',        CLOUDINARY_FOLDER);
-      fd.append('tags',          tags.join(','));
-      fd.append('context',       `author=${author.replace(/([|=\\])/g, '\\$1')}`);
-      const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `Erro ${res.status}`);
-      S.photos.unshift(parseUploaded(data));
+      await uploadToCloudinary(await prepareForUpload(item.file), { author, album, featured });
       item.done = true;
       item.status.className = 'ok';
       item.status.textContent = '✓ Enviada';
@@ -933,4 +966,403 @@ async function startUpload() {
   toast(failed ? `${ok} enviadas, ${failed} com erro.` : `${plural(ok, 'foto enviada', 'fotos enviadas')}!`, failed > 0);
   $('upStart').disabled = failed === 0;
   $('upStart').textContent = failed ? 'Tentar de novo as que falharam' : 'Enviar';
+}
+
+/* ============================================================
+   COLAGEM (várias fotos numa moldura só — desenho em colagem.js)
+   ============================================================ */
+S.collage = { photos: [], images: new Map(), format: 'feed', layout: 'grade', canvas: null, token: 0 };
+
+function renderChips(container, items, current, onPick) {
+  container.replaceChildren(...items.map((it) => h('button', {
+    type: 'button', class: 'chip' + (it.id === current ? ' active' : ''), text: it.label,
+    onclick: () => onPick(it.id),
+  })));
+}
+
+function renderCollageControls() {
+  renderChips($('clFormats'), COLLAGE_FORMATS, S.collage.format, (id) => { S.collage.format = id; renderCollageControls(); drawCollage(); });
+  renderChips($('clLayouts'), COLLAGE_LAYOUTS, S.collage.layout, (id) => { S.collage.layout = id; renderCollageControls(); drawCollage(); });
+}
+
+function renderCollageOrder() {
+  const list = S.collage.photos;
+  const move = (i, d) => { const j = i + d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; renderCollageOrder(); drawCollage(); };
+  $('clOrder').replaceChildren(...list.map((p, i) => h('div', { class: 'order-item' },
+    h('img', { src: thumbUrl(p, 120), alt: `Foto de ${p.author}` }),
+    h('span', { class: 'order-n', text: i + 1 }),
+    h('div', { class: 'order-btns' },
+      h('button', { type: 'button', text: '◀', title: 'Mover para antes', disabled: i === 0, onclick: () => move(i, -1) }),
+      h('button', { type: 'button', text: '▶', title: 'Mover para depois', disabled: i === list.length - 1, onclick: () => move(i, 1) })))));
+}
+
+function openCollage(photos) {
+  S.collage.photos = photos.slice(0, COLLAGE_MAX);
+  S.collage.canvas = null;
+  $('clTitle').value    = eventInfo().fullName;
+  $('clSubtitle').value = '';
+  $('clBadge').checked  = true;
+  $('clAlbum').value    = '';
+  renderCollageControls();
+  renderCollageOrder();
+  openModal('collageModal');
+  drawCollage();
+}
+
+/* Carrega cada foto uma vez só (com crossOrigin, para o canvas poder exportar) */
+function collageImage(p) {
+  const key = `${p.id}:${p.angle || 0}`;
+  if (!S.collage.images.has(key)) S.collage.images.set(key, loadFrameImage(photoUrl(p, 'w_1200,q_auto')));
+  return S.collage.images.get(key);
+}
+
+async function drawCollage() {
+  const token = ++S.collage.token;
+  $('clLoading').hidden = false;
+  try {
+    const images = await Promise.all(S.collage.photos.map(collageImage));
+    const canvas = await renderCollage(images, {
+      format:   S.collage.format,
+      layout:   S.collage.layout,
+      title:    $('clTitle').value.trim(),
+      subtitle: $('clSubtitle').value.trim(),
+      badge:    $('clBadge').checked,
+      hashtags: S.config.hashtags,
+      theme:    frameTheme(),
+    });
+    if (token !== S.collage.token) return;
+    S.collage.canvas = canvas;
+    const view = $('clCanvas');
+    view.width  = canvas.width;
+    view.height = canvas.height;
+    view.getContext('2d').drawImage(canvas, 0, 0);
+  } catch (err) {
+    toast(err.message || 'Não foi possível montar a colagem.', true);
+  } finally {
+    if (token === S.collage.token) $('clLoading').hidden = true;
+  }
+}
+
+const collageFilename = () => `colagem-${eventInfo().tag}-${Date.now()}.jpg`;
+
+async function downloadCollage() {
+  if (!S.collage.canvas) return;
+  downloadBlob(await canvasToJpeg(S.collage.canvas), collageFilename());
+}
+
+async function shareCollage() {
+  if (!S.collage.canvas) return;
+  const caption = [S.config.shareCaption, S.config.hashtags].filter(Boolean).join('\n\n');
+  try { await navigator.clipboard?.writeText(caption); } catch (_) { /* segue sem copiar */ }
+  const r = await shareOrDownloadFramed(S.collage.canvas, { caption, filename: collageFilename() });
+  if (r === 'downloaded') toast('Colagem baixada! A legenda foi copiada.');
+}
+
+async function publishCollage() {
+  if (!S.collage.canvas) return;
+  const btn = $('clPublish');
+  btn.disabled = true;
+  btn.textContent = 'Publicando…';
+  await run('Não foi possível publicar', async () => {
+    const blob = await canvasToJpeg(S.collage.canvas);
+    await uploadToCloudinary(new File([blob], collageFilename(), { type: 'image/jpeg' }), {
+      author: 'Organização', album: $('clAlbum').value, featured: $('clFeatured').checked, extraTags: ['colagem'],
+    });
+    renderAll();
+    toast('Colagem publicada na galeria! 🎉');
+  });
+  btn.disabled = false;
+  btn.textContent = '📤 Publicar colagem';
+}
+
+/* ============================================================
+   EVENTO (nome, cores, logo) e MOLDURAS PERSONALIZADAS
+   ============================================================ */
+const eventInfo  = () => eventData(S.config.event);
+const frameTheme = (frame) => buildFrameTheme(S.config.event, frame);
+
+/* Paletas prontas para começar rápido (principal, destaque, texto escuro) */
+const COLOR_PRESETS = [
+  { name: 'Azul e laranja', primary: '#004098', accent: '#e8490f', dark: '#221f1f' },
+  { name: 'Verde',          primary: '#0b6e4f', accent: '#f2b705', dark: '#1d2b24' },
+  { name: 'Roxo',           primary: '#5b2a86', accent: '#ff7a59', dark: '#24182e' },
+  { name: 'Vermelho',       primary: '#b3122e', accent: '#ffc845', dark: '#2a1215' },
+  { name: 'Grafite e ouro', primary: '#1f2933', accent: '#d4a72c', dark: '#111111' },
+  { name: 'Rosa',           primary: '#c2185b', accent: '#00bfa5', dark: '#2b1020' },
+];
+
+function adminEmailsFromForm() {
+  return [...new Set($('sAdmins').value.split(/[\s,;]+/).map((e) => e.trim().toLowerCase()).filter(Boolean))];
+}
+
+/* Foto de exemplo para as prévias: a mais recente visível, ou um quadro neutro se ainda não houver fotos */
+let samplePromise = null;
+function samplePhoto() {
+  if (!samplePromise) {
+    const p = S.photos.find((x) => !x.hidden);
+    samplePromise = p
+      ? loadFrameImage(photoUrl(p, 'w_1000,q_auto')).catch(placeholderPhoto)
+      : placeholderPhoto();
+  }
+  return samplePromise;
+}
+
+function placeholderPhoto() {
+  const c = Object.assign(document.createElement('canvas'), { width: 900, height: 1200 });
+  const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 900, 1200);
+  g.addColorStop(0, '#cfd8e3');
+  g.addColorStop(1, '#8a9bb0');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 900, 1200);
+  x.fillStyle = 'rgba(255,255,255,.85)';
+  x.font = '700 64px Poppins, Arial';
+  x.textAlign = 'center';
+  x.fillText('📸 Sua foto aqui', 450, 620);
+  return loadFrameImage(c.toDataURL('image/jpeg', 0.9));
+}
+
+/* Copia um canvas grande para um canvas de prévia (o CSS reduz o tamanho na tela) */
+function paintPreview(target, source) {
+  target.width  = source.width;
+  target.height = source.height;
+  target.getContext('2d').drawImage(source, 0, 0);
+}
+
+/* ── Aba Evento ── */
+let eventDraft = null;
+
+function bindBranding() {
+  ['evName', 'evYear', 'evPlace', 'evTagline', 'evPrimary', 'evAccent', 'evDark', 'evTag']
+    .forEach((id) => $(id).addEventListener('input', () => { readEventForm(); previewEvent(); }));
+  $('evLogoFile').addEventListener('change', uploadLogo);
+  $('evLogoRemove').addEventListener('click', () => { eventDraft.logoUrl = ''; renderLogoBox(); previewEvent(); });
+  $('eventForm').addEventListener('submit', saveEvent);
+  $('evPresets').replaceChildren(...COLOR_PRESETS.map((p) => h('button', {
+    type: 'button', class: 'preset', title: p.name, 'aria-label': `Paleta ${p.name}`,
+    style: `background:linear-gradient(135deg, ${p.primary} 0 60%, ${p.accent} 60% 100%)`,
+    onclick: () => { Object.assign(eventDraft, { primary: p.primary, accent: p.accent, dark: p.dark }); fillEventForm(eventDraft); },
+  })));
+
+  $('btnNewFrame').addEventListener('click', () => openFrameEditor(null));
+  $('frameForm').addEventListener('submit', saveFrame);
+  ['frName', 'frPrimary', 'frAccent', 'frTitle', 'frSubtitle', 'frBadge']
+    .forEach((id) => $(id).addEventListener('input', () => { readFrameForm(); previewFrame(); }));
+  $('frUseEvent').addEventListener('change', () => { readFrameForm(); syncFrameColors(); readFrameForm(); previewFrame(); });
+  $('frEnabled').addEventListener('change', readFrameForm);
+}
+
+function fillEventForm(ev = S.config.event) {
+  eventDraft = { ...ev };
+  $('evName').value    = ev.name;
+  $('evYear').value    = ev.year;
+  $('evPlace').value   = ev.place;
+  $('evTagline').value = ev.tagline;
+  $('evPrimary').value = ev.primary.toLowerCase();
+  $('evAccent').value  = ev.accent.toLowerCase();
+  $('evDark').value    = ev.dark.toLowerCase();
+  $('evTag').value     = ev.tag;
+  renderLogoBox();
+  previewEvent();
+}
+
+function readEventForm() {
+  Object.assign(eventDraft, {
+    name:    $('evName').value.trim(),
+    year:    $('evYear').value.trim(),
+    place:   $('evPlace').value.trim(),
+    tagline: $('evTagline').value.trim(),
+    primary: $('evPrimary').value,
+    accent:  $('evAccent').value,
+    dark:    $('evDark').value,
+    tag:     $('evTag').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''),
+  });
+}
+
+function renderLogoBox() {
+  $('evLogoPreview').hidden = !eventDraft.logoUrl;
+  if (eventDraft.logoUrl) $('evLogoPreview').src = eventDraft.logoUrl;
+  $('evLogoNone').hidden    = !!eventDraft.logoUrl;
+  $('evLogoRemove').hidden  = !eventDraft.logoUrl;
+}
+
+let previewTimer;
+function previewEvent() {
+  const e = eventData(eventDraft);
+  const box = $('evAppPreview');
+  box.style.setProperty('--p', e.primary);
+  box.style.setProperty('--a', e.accent);
+  $('apSub').textContent = e.fullName;
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(async () => {
+    const canvas = await renderFrame(await samplePhoto(), {
+      template: 'classica', badge: true, hashtags: S.config.hashtags, theme: buildFrameTheme(eventDraft, {}),
+    });
+    paintPreview($('evFramePreview'), canvas);
+  }, 250);
+}
+
+async function uploadLogo() {
+  const file = $('evLogoFile').files[0];
+  $('evLogoFile').value = '';
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('O logo deve ter até 5 MB.', true); return; }
+  await run('Não foi possível enviar o logo', async () => {
+    toast('Enviando logo…');
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    fd.append('asset_folder', 'juntafoto_logos');
+    fd.append('folder', 'juntafoto_logos');
+    fd.append('tags', 'juntafoto_logo'); // sem a tag do evento: não aparece na galeria
+    const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `Erro ${res.status}`);
+    // PNG preserva a transparência na moldura (o Cloudinary converte SVG/WebP/JPG pela extensão)
+    eventDraft.logoUrl = data.secure_url.replace(/\.(svg|webp|jpe?g)$/i, '.png');
+    renderLogoBox();
+    previewEvent();
+    toast('Logo enviado! Clique em "Salvar identidade do evento" para aplicar.');
+  });
+}
+
+async function saveEvent(e) {
+  e.preventDefault();
+  readEventForm();
+  const old = S.config.event;
+  const newTag = eventDraft.tag && eventDraft.tag !== old.tag;
+  if (newTag) {
+    const r = await confirmDialog({
+      title:   'Começar um novo evento?',
+      message: `O código muda de "${old.tag}" para "${eventDraft.tag}". A galeria e o painel vão mostrar só as fotos do novo código. As fotos atuais continuam guardadas.`,
+      okText:  'Trocar código',
+    });
+    if (!r) return;
+  }
+  if (await saveConfig({ event: { ...eventDraft } })) {
+    fillEventForm();
+    toast('Identidade do evento salva! O app atualiza em até 1 minuto.');
+    if (newTag) loadAll(); // outro evento: recarrega as fotos
+  }
+}
+
+/* ── Aba Molduras ── */
+let frameDraft = null;
+let frameEditingId = null;
+
+function renderFrames() {
+  const frames = S.config.frames;
+  $('framesGrid').replaceChildren(...frames.map((f, i) => {
+    const thumb = h('canvas', { class: 'frame-thumb', 'aria-label': `Prévia da moldura ${f.name}` });
+    renderFrameThumb(thumb, f);
+    return h('div', { class: 'frame-card' + (f.enabled ? '' : ' is-off') },
+      thumb,
+      h('div', { class: 'album-body' },
+        h('div', { class: 'badges', style: 'margin-bottom:6px' },
+          !f.enabled && h('span', { class: 'badge hidden', text: 'Desativada' }),
+          h('span', { class: 'badge album', text: FRAME_TEMPLATES.find((t) => t.id === f.base)?.label || f.base })),
+        h('h4', { text: f.name }),
+        h('p', { text: [f.title || 'Nome do evento', `selo "${f.badgeText}"`].join(' · ') })),
+      h('div', { class: 'album-actions' },
+        h('button', { class: 'btn btn-sm', type: 'button', text: 'Editar', onclick: () => openFrameEditor(f.id) }),
+        h('button', { class: 'btn btn-sm', type: 'button', text: f.enabled ? 'Desativar' : 'Ativar', onclick: () => updateFrames(frames.map((x) => (x.id === f.id ? { ...x, enabled: !x.enabled } : x))) }),
+        h('button', { class: 'btn btn-sm', type: 'button', text: '↑', title: 'Mover para cima', disabled: i === 0, onclick: () => moveFrame(i, -1) }),
+        h('button', { class: 'btn btn-sm', type: 'button', text: '↓', title: 'Mover para baixo', disabled: i === frames.length - 1, onclick: () => moveFrame(i, 1) }),
+        h('button', { class: 'btn btn-sm', type: 'button', text: 'Duplicar', onclick: () => duplicateFrame(f) }),
+        h('button', { class: 'btn btn-sm btn-danger', type: 'button', text: 'Excluir', disabled: frames.length === 1, onclick: () => deleteFrame(f) })));
+  }));
+}
+
+async function renderFrameThumb(target, frame) {
+  try {
+    const canvas = await renderFrame(await samplePhoto(), { template: frame.base, badge: true, hashtags: S.config.hashtags, theme: frameTheme(frame) });
+    paintPreview(target, canvas);
+  } catch (_) { /* a prévia é opcional */ }
+}
+
+const updateFrames = (frames) => saveConfig({ frames });
+
+function moveFrame(index, dir) {
+  const frames = S.config.frames.slice();
+  const [f] = frames.splice(index, 1);
+  frames.splice(index + dir, 0, f);
+  updateFrames(frames);
+}
+
+function frameId(name) {
+  return (norm(name).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30) || 'moldura') + '_' + Math.random().toString(36).slice(2, 6);
+}
+
+async function duplicateFrame(f) {
+  if (await updateFrames([...S.config.frames, { ...f, id: frameId(f.name), name: `${f.name} (cópia)`.slice(0, 40) }])) toast('Moldura duplicada.');
+}
+
+async function deleteFrame(f) {
+  const r = await confirmDialog({ title: `Excluir a moldura "${f.name}"?`, message: 'Os participantes deixam de ver esta opção. As fotos não são afetadas.', okText: 'Excluir', danger: true });
+  if (r && await updateFrames(S.config.frames.filter((x) => x.id !== f.id))) toast('Moldura excluída.');
+}
+
+function openFrameEditor(id) {
+  frameEditingId = id;
+  const base = id ? S.config.frames.find((f) => f.id === id)
+                  : { name: 'Nova moldura', base: 'classica', primary: '', accent: '', title: '', subtitle: '', badgeText: 'EU FUI!', enabled: true };
+  frameDraft = { ...base };
+  $('frTitleH').textContent = id ? 'Editar moldura' : 'Nova moldura';
+  $('frName').value      = frameDraft.name;
+  $('frTitle').value     = frameDraft.title;
+  $('frSubtitle').value  = frameDraft.subtitle;
+  $('frBadge').value     = frameDraft.badgeText;
+  $('frEnabled').checked = frameDraft.enabled;
+  $('frUseEvent').checked = !frameDraft.primary && !frameDraft.accent;
+  syncFrameColors();
+  renderFrameBases();
+  openModal('frameModal');
+  previewFrame();
+}
+
+function renderFrameBases() {
+  renderChips($('frBases'), FRAME_TEMPLATES, frameDraft.base, (id) => { frameDraft.base = id; renderFrameBases(); previewFrame(); });
+}
+
+/* Com "usar as cores do evento", os seletores mostram as cores do evento e ficam travados */
+function syncFrameColors() {
+  const useEvent = $('frUseEvent').checked;
+  $('frPrimary').value = (useEvent ? S.config.event.primary : frameDraft.primary || S.config.event.primary).toLowerCase();
+  $('frAccent').value  = (useEvent ? S.config.event.accent : frameDraft.accent || S.config.event.accent).toLowerCase();
+  $('frPrimary').disabled = $('frAccent').disabled = useEvent;
+}
+
+function readFrameForm() {
+  const useEvent = $('frUseEvent').checked;
+  Object.assign(frameDraft, {
+    name:      $('frName').value.trim(),
+    title:     $('frTitle').value.trim(),
+    subtitle:  $('frSubtitle').value.trim(),
+    badgeText: $('frBadge').value.trim() || 'EU FUI!',
+    enabled:   $('frEnabled').checked,
+    primary:   useEvent ? '' : $('frPrimary').value,
+    accent:    useEvent ? '' : $('frAccent').value,
+  });
+}
+
+let framePreviewTimer;
+function previewFrame() {
+  clearTimeout(framePreviewTimer);
+  framePreviewTimer = setTimeout(async () => {
+    const canvas = await renderFrame(await samplePhoto(), { template: frameDraft.base, badge: true, hashtags: S.config.hashtags, theme: frameTheme(frameDraft) });
+    paintPreview($('frPreview'), canvas);
+  }, 200);
+}
+
+async function saveFrame(e) {
+  e.preventDefault();
+  readFrameForm();
+  if (!frameDraft.name) { toast('Dê um nome para a moldura.', true); return; }
+  const frames = frameEditingId
+    ? S.config.frames.map((f) => (f.id === frameEditingId ? { ...frameDraft, id: f.id } : f))
+    : [...S.config.frames, { ...frameDraft, id: frameId(frameDraft.name) }];
+  if (await updateFrames(frames)) {
+    closeModal($('frameModal'));
+    toast('Moldura salva! Os participantes veem em até 1 minuto.');
+  }
 }
