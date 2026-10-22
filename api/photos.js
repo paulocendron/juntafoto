@@ -18,13 +18,15 @@ module.exports = async (req, res) => {
     const album = String(req.query.album || '');
     if (album && /^[a-z0-9_]+$/.test(album)) parts.push(`tags=${ALBUM_PREFIX}${album}`);
     if (req.query.featured === '1') parts.push(`tags=${TAG_FEATURED}`);
+    // "Minhas fotos": filtra pela impressão digital do aparelho (só fotos já visíveis na galeria)
+    const owner = /^[0-9a-f]{64}$/.test(String(req.query.owner || '')) ? String(req.query.owner) : '';
 
     const photos = [];
     let cursor = req.query.cursor || undefined;
     let scans  = 0;
     do {
       const r = await searchPhotos(config.event.tag, parts.join(' AND '), { cursor, maxResults: 100 });
-      photos.push(...r.photos.filter((p) => !p.hidden && !p.pending && !p.albums.some((a) => hiddenAlbums.has(a))));
+      photos.push(...r.photos.filter((p) => !p.hidden && !p.pending && !p.albums.some((a) => hiddenAlbums.has(a)) && (!owner || p.owner === owner)));
       cursor = r.nextCursor;
       scans++;
     } while (cursor && photos.length < MIN_PER_PAGE && scans < MAX_SCANS);

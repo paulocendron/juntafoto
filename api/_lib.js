@@ -192,6 +192,7 @@ function parsePhoto(r) {
     createdAt: r.created_at,
     author:    safeDecode(ctx.author) || 'Participante',
     caption:   ctx.caption || '',
+    owner:     /^[0-9a-f]{64}$/.test(ctx.owner || '') ? ctx.owner : '', // impressão digital (SHA-256) da chave do aparelho que enviou
     angle:     parseInt(ctx.angle, 10) || 0,
     hidden:    tags.includes(TAG_HIDDEN),
     pending:   tags.includes(TAG_PENDING),
@@ -257,7 +258,13 @@ function sendError(res, err, status = 500) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* Impressão digital da chave secreta do participante (a chave em si nunca fica guardada no servidor) */
+function ownerHash(secret) {
+  return crypto.createHash('sha256').update(String(secret)).digest('hex');
+}
+
 module.exports = {
+  ownerHash, parsePhoto,
   cloudinary, TAG_HIDDEN, TAG_PENDING, TAG_FEATURED, ALBUM_PREFIX,
   isConfigured, missingEnv, readConfig, writeConfig, normalizeConfig, publicConfig,
   searchPhotos, createToken, verifyToken, safeEqual, sendError, sleep,

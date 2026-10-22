@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
 </head>
 <body data-title-prefix="JuntaFoto · ">
 
@@ -48,7 +48,7 @@
       <h1 class="password-title"><span data-ev="line1">CONEXÃO</span><br/><span data-ev="line2">PROFISSIONAL</span> <span class="password-year" data-ev="year">2026</span></h1>
       <p class="password-sub" data-ev="sub">SENAI Fraiburgo · Finanças, Carreira e Mercado</p>
 
-      <div class="password-form">
+      <div class="password-form" id="passwordStep">
         <label for="passwordInput" class="password-label">
           🔑 Digite a palavra-chave do evento
         </label>
@@ -68,7 +68,24 @@
         </button>
       </div>
 
-      <p class="password-hint">Peça a palavra-chave para um organizador do evento.</p>
+      <!-- Primeiro acesso: o participante registra o nome (fica salvo neste aparelho) -->
+      <div class="password-form" id="nameStep" hidden>
+        <label for="nameInput" class="password-label">👋 Como você quer ser chamado?</label>
+        <input
+          type="text"
+          id="nameInput"
+          class="password-input name-input"
+          placeholder="Seu nome ou apelido"
+          maxlength="40"
+          autocomplete="nickname"
+          autocapitalize="words"
+        />
+        <p class="password-error" id="nameError" hidden></p>
+        <button class="btn-primary password-btn" id="btnSaveName">Continuar →</button>
+        <p class="name-why">Seu nome aparece nas fotos que você enviar, e só você vai poder excluir as suas fotos neste aparelho.</p>
+      </div>
+
+      <p class="password-hint" id="passwordHint">Peça a palavra-chave para um organizador do evento.</p>
     </div>
   </div>
 
@@ -139,6 +156,12 @@
   <main class="main-content" id="mainContent">
 
     <!-- Filtro por álbum (aparece quando o admin cria álbuns) -->
+    <!-- Saudação com o nome registrado -->
+    <div class="hello-bar" id="helloBar" hidden>
+      <span>👋 Olá, <strong id="helloName"></strong>!</span>
+      <button type="button" class="btn-text" id="btnChangeName">trocar nome</button>
+    </div>
+
     <nav class="album-filters" id="albumFilters" aria-label="Álbuns" hidden></nav>
 
     <!-- Barra de ações da galeria -->
@@ -327,6 +350,8 @@
         </button>
       </div>
       <button class="btn-link-light" id="btnCaption" hidden>📋 Copiar legenda com hashtags</button>
+      <!-- Só aparece nas fotos enviadas por este aparelho -->
+      <button class="btn-delete-mine" id="btnDeleteMine" hidden>🗑️ Excluir minha foto</button>
     </div>
   </div>
 
@@ -356,6 +381,6 @@
   <script src="evento.js?v=8"></script>
   <script src="imagem.js?v=8"></script>
   <script src="moldura.js?v=8"></script>
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>

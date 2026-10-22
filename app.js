@@ -15,6 +15,7 @@ const SESSION_CHECK_INTERVAL  = 5_000;              // confere a inatividade a c
 const GALLERY_POLL_INTERVAL   = 60_000;             // 60 segundos
 const ACTIVITY_EVENTS         = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'wheel', 'touchstart'];
 const FEATURED_FILTER         = '__destaques';
+const MINE_FILTER             = '__minhas';
 
 /* ============================================================
    Estado
@@ -42,6 +43,7 @@ const state = {
     event:          DEFAULT_EVENT,
     frames:         DEFAULT_FRAMES,
   },
+  deletedIds:    new Set(), // excluídas agora: some mesmo se a lista vier do cache por alguns segundos
   // Moldura na foto aberta e na prévia do envio
   viewer:      { photo: null, source: null, canvas: null, token: 0 },
   uploadFrame: { source: null, canvas: null, token: 0, preview: '' },
@@ -79,9 +81,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* --- Configurações do evento (álbuns, tempo de sessão, envios) --- */
   await loadConfig();
 
-  /* --- Verifica sessão --- */
+  /* --- Verifica sessão (e se o participante já registrou o nome neste aparelho) --- */
+  profile = loadProfile();
   if (sessionRemainingMs() > 0) {
-    unlockApp();
+    if (profile) unlockApp();
+    else showNameScreen();
   } else {
     clearSession();
     showPasswordScreen();
@@ -152,6 +156,74 @@ function checkSession() {
 }
 
 /* ============================================================
+   PERFIL DO PARTICIPANTE (nome + chave secreta deste aparelho)
+   A chave nunca é mostrada; as fotos guardam só a impressão digital dela (SHA-256).
+   Para excluir, o servidor confere se a chave enviada gera a mesma impressão digital.
+   ============================================================ */
+const PROFILE_KEY = 'jf_profile';
+let profile = null; // { name, secret, owner }
+
+function loadProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
+    if (p && p.name && /^[0-9a-f]{64}$/.test(p.secret) && /^[0-9a-f]{64}$/.test(p.owner)) return p;
+  } catch (_) { /* sem armazenamento ou dado inválido */ }
+  return null;
+}
+
+function saveProfile(p) {
+  profile = p;
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (_) { /* vale só nesta visita */ }
+}
+
+function randomSecret() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(text) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+const isMine = (photo) => !!profile && !!photo.owner && photo.owner === profile.owner;
+
+function renderHello() {
+  $('helloBar').hidden = !profile;
+  if (profile) $('helloName').textContent = profile.name;
+}
+
+/* Exclui uma foto que este aparelho enviou */
+async function deleteMyPhoto() {
+  const photo = state.viewer.photo;
+  if (!photo || !isMine(photo)) return;
+  if (!confirm('Excluir esta foto da galeria? Não tem como desfazer.')) return;
+  const btn = $('btnDeleteMine');
+  btn.disabled = true;
+  btn.textContent = 'Excluindo…';
+  try {
+    const res  = await fetch('/api/my-photo', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: photo.id, secret: profile.secret }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Erro ${res.status}`);
+    state.deletedIds.add(photo.id);
+    state.photos = state.photos.filter((p) => p.id !== photo.id);
+    closeViewer();
+    renderGallery();
+    showToast('🗑️ Foto excluída.');
+  } catch (err) {
+    showToast(err.message || 'Não foi possível excluir. Tente de novo.', 4000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🗑️ Excluir minha foto';
+  }
+}
+
+/* ============================================================
    TELA DE SENHA
    ============================================================ */
 function showPasswordScreen() {
@@ -168,13 +240,56 @@ function showPasswordScreen() {
   btn.textContent = 'Entrar na galeria →';
   $('passwordInput').value = '';
   $('passwordError').hidden = true;
+  showStep('password');
   setTimeout(() => $('passwordInput').focus(), 200);
+}
+
+/* A caixa da tela inicial tem dois passos: palavra-chave e (só no 1º acesso) o nome */
+function showStep(step) {
+  $('passwordStep').hidden = step !== 'password';
+  $('passwordHint').hidden = step !== 'password';
+  $('nameStep').hidden     = step !== 'name';
+}
+
+/* Pede o nome sem encerrar a sessão (1º acesso ou "trocar nome") */
+function showNameScreen() {
+  $('passwordScreen').hidden = false;
+  $('appContent').hidden     = true;
+  showStep('name');
+  $('nameInput').value      = profile?.name || '';
+  $('nameError').hidden     = true;
+  $('btnSaveName').disabled = false;
+  $('btnSaveName').textContent = profile ? 'Salvar nome →' : 'Continuar →';
+  setTimeout(() => $('nameInput').focus(), 200);
+}
+
+async function saveName() {
+  const name = $('nameInput').value.trim().replace(/\s+/g, ' ');
+  if (name.length < 2) {
+    $('nameError').textContent = 'Digite seu nome (pelo menos 2 letras).';
+    $('nameError').hidden = false;
+    $('nameInput').focus();
+    return;
+  }
+  $('btnSaveName').disabled = true;
+  try {
+    // Trocar o nome mantém a mesma chave: as fotos já enviadas continuam sendo suas
+    const secret = profile?.secret || randomSecret();
+    saveProfile({ name, secret, owner: profile?.owner || await sha256Hex(secret) });
+  } catch (_) {
+    $('nameError').textContent = 'Não foi possível salvar. Atualize a página e tente de novo.';
+    $('nameError').hidden = false;
+    $('btnSaveName').disabled = false;
+    return;
+  }
+  unlockApp();
 }
 
 function unlockApp() {
   state.authenticated    = true;
   $('passwordScreen').hidden = true;
   $('appContent').hidden     = false;
+  renderHello();
   loadPhotos();
   startPolling();
   startSessionTimer();
@@ -206,7 +321,8 @@ async function checkPassword() {
     saveActivity();
     $('passwordError').hidden = true;
     btn.textContent = '✓ Entrando…';
-    setTimeout(unlockApp, 400);
+    // 1º acesso neste aparelho: pede o nome antes de entrar
+    setTimeout(() => (profile ? unlockApp() : showNameScreen()), 400);
   } else {
     showPasswordError('Palavra-chave incorreta. Tente novamente.');
     if (navigator.vibrate) navigator.vibrate(200);
@@ -258,6 +374,14 @@ function bindEvents() {
   $('passwordInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') checkPassword();
   });
+
+  /* Nome do participante (1º acesso) e "trocar nome" */
+  $('btnSaveName').addEventListener('click', saveName);
+  $('nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveName(); });
+  $('btnChangeName').addEventListener('click', showNameScreen);
+
+  /* Excluir uma foto própria */
+  $('btnDeleteMine').addEventListener('click', deleteMyPhoto);
 
   /* Abrir modal de upload */
   $('btnUploadHeader').addEventListener('click', openUploadModal);
@@ -347,10 +471,11 @@ function renderAlbumFilters() {
   const bar = $('albumFilters');
   bar.innerHTML = '';
   const albums = state.config.albums || [];
-  if (albums.length === 0) { bar.hidden = true; return; }
   bar.hidden = false;
 
-  const chips = [{ id: '', name: 'Todas' }, { id: FEATURED_FILTER, name: '⭐ Destaques' }, ...albums];
+  // "Minhas fotos" sempre aparece; "Destaques" e álbuns quando o admin cria álbuns
+  const chips = [{ id: '', name: 'Todas' }, { id: MINE_FILTER, name: '📷 Minhas fotos' },
+    ...(albums.length ? [{ id: FEATURED_FILTER, name: '⭐ Destaques' }, ...albums] : [])];
   chips.forEach((a) => {
     const chip = document.createElement('button');
     chip.type        = 'button';
@@ -412,7 +537,7 @@ function resetUploadModal() {
   $('progressBar').style.width = '0%';
   $('uploadError').hidden   = true;
   $('uploadError').textContent = '';
-  $('authorName').value     = '';
+  $('authorName').value     = profile?.name || '';
   state.uploadFrame = { source: null, canvas: null, token: state.uploadFrame.token + 1, preview: '' };
   uploadFrameCtl?.reset();
   $('uploadFrame').hidden = true;
@@ -491,7 +616,8 @@ async function uploadPhoto() {
   formData.append('asset_folder',  CLOUDINARY_FOLDER);
   formData.append('folder',        CLOUDINARY_FOLDER);
   formData.append('tags',          tags.join(','));
-  formData.append('context',       `author=${author.replace(/([|=\\])/g, '\\$1')}`);
+  // owner = impressão digital da chave deste aparelho: permite excluir depois só as próprias fotos
+  formData.append('context',       `author=${author.replace(/([|=\\])/g, '\\$1')}${profile ? `|owner=${profile.owner}` : ''}`);
 
   const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
@@ -525,7 +651,7 @@ async function uploadPhoto() {
       : '🎉 Foto enviada! Aparecendo na galeria…', 4000);
     closeUploadModal();
     // A busca do Cloudinary leva alguns segundos para indexar a foto nova
-    setTimeout(() => { state.photos = []; state.nextCursor = null; loadPhotos(); }, 5000);
+    setTimeout(() => { state.photos = []; state.nextCursor = null; loadPhotos(false, true); }, 5000);
 
   } catch (err) {
     showUploadError(err.message || 'Erro ao enviar. Tente novamente.');
@@ -551,7 +677,8 @@ function setProgress(pct, label) {
 /* ============================================================
    GALERIA
    ============================================================ */
-async function loadPhotos(append = false) {
+/* fresh = pula o cache curto da Vercel (logo depois de enviar uma foto) */
+async function loadPhotos(append = false, fresh = false) {
   if (state.isLoading) return;
   state.isLoading = true;
   if (!append) {
@@ -560,11 +687,11 @@ async function loadPhotos(append = false) {
     $('galleryToolbar').hidden = true;
   }
   try {
-    const res = await fetch(buildPhotosUrl(append));
+    const res = await fetch(buildPhotosUrl(append, fresh));
     if (!res.ok) throw new Error('Erro ao carregar fotos');
     const data = await res.json();
     state.nextCursor = data.nextCursor || null;
-    const newPhotos = (data.photos || []).map(withImageUrls);
+    const newPhotos = (data.photos || []).filter((p) => !state.deletedIds.has(p.id)).map(withImageUrls);
     state.photos = append ? [...state.photos, ...newPhotos] : newPhotos;
     renderGallery(append ? newPhotos : null);
   } catch (_) {
@@ -576,11 +703,13 @@ async function loadPhotos(append = false) {
   }
 }
 
-function buildPhotosUrl(append) {
+function buildPhotosUrl(append, fresh = false) {
   const params = new URLSearchParams();
-  if (state.album === FEATURED_FILTER) params.set('featured', '1');
-  else if (state.album)                params.set('album', state.album);
-  if (append && state.nextCursor)      params.set('cursor', state.nextCursor);
+  if (state.album === FEATURED_FILTER)  params.set('featured', '1');
+  else if (state.album === MINE_FILTER) params.set('owner', profile?.owner || '-');
+  else if (state.album)                 params.set('album', state.album);
+  if (append && state.nextCursor)       params.set('cursor', state.nextCursor);
+  if (fresh)                            params.set('t', Date.now());
   return `/api/photos?${params}`;
 }
 
@@ -637,6 +766,12 @@ function renderGallery(appended = null) {
     authorEl.className   = 'gallery-item-author';
     authorEl.textContent = (photo.featured ? '⭐ ' : '') + photo.author;
     overlay.appendChild(authorEl);
+    if (isMine(photo)) {
+      const mine = document.createElement('span');
+      mine.className   = 'gallery-item-mine';
+      mine.textContent = 'Você';
+      item.appendChild(mine);
+    }
 
     item.appendChild(img);
     item.appendChild(overlay);
@@ -665,6 +800,7 @@ function openViewer(photo) {
   viewerFrameCtl.reset();
   $('viewerFrame').hidden = !state.config.framesEnabled;
   $('btnCaption').hidden  = !state.config.framesEnabled;
+  $('btnDeleteMine').hidden = !isMine(photo); // só nas fotos enviadas por este aparelho
   $('viewerModal').hidden = false;
   document.body.style.overflow = 'hidden';
 }
