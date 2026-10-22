@@ -31,8 +31,15 @@ const DEFAULT_CONFIG = {
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
 
+const REQUIRED_ENV = ['CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET', 'ADMIN_PASSWORD'];
+
+/* Só os nomes que faltam (nunca os valores) — ajuda a descobrir o que não foi cadastrado na Vercel */
+function missingEnv() {
+  return REQUIRED_ENV.filter((name) => !String(process.env[name] || '').trim());
+}
+
 function isConfigured() {
-  return !!(process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.ADMIN_PASSWORD);
+  return missingEnv().length === 0;
 }
 
 /* ============================================================
@@ -178,6 +185,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 module.exports = {
   cloudinary, EVENT_TAG, TAG_HIDDEN, TAG_PENDING, TAG_FEATURED, ALBUM_PREFIX,
-  isConfigured, readConfig, writeConfig, normalizeConfig, publicConfig,
+  isConfigured, missingEnv, readConfig, writeConfig, normalizeConfig, publicConfig,
   searchPhotos, createToken, verifyToken, safeEqual, sendError, sleep,
 };

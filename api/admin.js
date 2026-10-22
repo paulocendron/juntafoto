@@ -1,7 +1,7 @@
 /* POST /api/admin { action, ... } — todas as operações do painel do administrador */
 const {
   cloudinary, EVENT_TAG, TAG_HIDDEN, TAG_PENDING, TAG_FEATURED, ALBUM_PREFIX,
-  isConfigured, readConfig, writeConfig, searchPhotos,
+  isConfigured, missingEnv, readConfig, writeConfig, searchPhotos,
   createToken, verifyToken, safeEqual, sendError, sleep,
 } = require('./_lib');
 
@@ -100,8 +100,10 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
   if (!isConfigured()) {
     return res.status(503).json({
-      error: 'Painel não configurado. Cadastre CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET e ADMIN_PASSWORD na Vercel.',
+      error: `Painel não configurado. Falta cadastrar na Vercel: ${missingEnv().join(', ')}.`,
       notConfigured: true,
+      missing: missingEnv(),
+      environment: process.env.VERCEL_ENV || 'desconhecido',
     });
   }
 
