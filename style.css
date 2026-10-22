@@ -1203,3 +1203,26 @@ body { background: var(--bg); color: var(--text); }
   right: 14px;
   z-index: 300;
 }
+
+/* ---------- Botão "Admin" no canto: visível, mas pequeno ---------- */
+.admin-corner {
+  width: auto;
+  height: 36px;
+  padding: 0 14px 0 11px;
+  gap: 6px;
+  border-radius: 50px;
+  opacity: .92;
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--brand-text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  box-shadow: 0 3px 12px rgba(0,0,0,.18);
+}
+.admin-corner:hover, .admin-corner:focus-visible { opacity: 1; }
+.admin-corner:active { transform: scale(.95); }
+.admin-corner svg { width: 15px; height: 15px; }
+/* Acima da tela da palavra-chave (z 500); some enquanto a janela de envio ou de foto está aberta */
+.admin-corner { z-index: 600; }
+body:has(.modal-overlay:not([hidden])) .admin-corner { display: none; }
