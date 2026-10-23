@@ -10,7 +10,7 @@ const CLOUDINARY_FOLDER        = 'conexao2026';
 /* ── A palavra-chave fica no servidor (/api/access) e é alterada no painel admin ── */
 
 /* ── Tempo sem usar o app antes de pedir a palavra-chave de novo (o admin pode mudar) ── */
-const DEFAULT_SESSION_MINUTES = 5;
+const DEFAULT_SESSION_MINUTES = 15;
 const SESSION_CHECK_INTERVAL  = 5_000;              // confere a inatividade a cada 5 s
 const GALLERY_POLL_INTERVAL   = 60_000;             // 60 segundos
 const ACTIVITY_EVENTS         = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'wheel', 'touchstart'];

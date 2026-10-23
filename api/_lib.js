@@ -21,7 +21,7 @@ const ALBUM_PREFIX = 'album_';
 const CONFIG_ID = 'juntafoto_config/config.json';
 const DEFAULT_CONFIG = {
   accessPassword: process.env.ACCESS_PASSWORD || 'conexao2026',
-  sessionMinutes: 5,
+  sessionMinutes: 15,
   uploadsOpen:    true,
   moderation:     false,
   defaultAlbum:   '',
