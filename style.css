@@ -1257,3 +1257,51 @@ body:has(.modal-overlay:not([hidden])) .admin-corner { display: none; }
 }
 .btn-delete-mine:active { background: rgba(255,107,107,.12); }
 .btn-delete-mine:disabled { opacity: .6; cursor: default; }
+
+/* ---------- Várias fotos no envio ---------- */
+.multi-preview {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 8px;
+  padding: 10px;
+  align-self: stretch;
+}
+.multi-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--placeholder);
+}
+.multi-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.multi-item.is-sending img { opacity: .55; }
+.multi-item.is-ok img { opacity: .7; }
+.multi-item.is-err { outline: 3px solid var(--error-text); outline-offset: -3px; }
+.multi-remove {
+  position: absolute; top: 4px; right: 4px;
+  width: 28px; height: 28px; border-radius: 50%; border: 0;
+  background: rgba(0,0,0,.65); color: #fff; font-size: .8rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.multi-status {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; font-weight: 800; color: #fff;
+  background: rgba(0,0,0,.55);
+}
+.multi-item.is-ok .multi-status  { background: #1a7f45; }
+.multi-item.is-err .multi-status { background: var(--error-text); }
+.multi-info {
+  margin: -8px 0 14px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+}
+/* O texto do progresso fica acima da barra: a caixa não pode cortá-lo */
+.progress-wrap { overflow: visible; margin-top: 26px; }
+.progress-bar  { border-radius: 50px; }
+.progress-label { font-weight: 600; color: var(--text-muted); }

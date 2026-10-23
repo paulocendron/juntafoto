@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=13" />
+  <link rel="stylesheet" href="style.css?v=15" />
 </head>
 <body data-title-prefix="JuntaFoto · ">
 
@@ -237,10 +237,13 @@
             <circle cx="12" cy="13" r="4"/>
           </svg>
           <p style="color:var(--brand-text);font-weight:600;">Escolha uma opção abaixo</p>
-          <span class="drop-hint">Converte qualquer formato para JPEG · até 8 MB (maiores são reduzidas)</span>
+          <span class="drop-hint">Na Galeria dá para marcar várias fotos de uma vez (até 10)</span>
         </div>
         <img class="preview-img" id="previewImg" src="" alt="Prévia da foto selecionada" hidden />
+        <!-- Várias fotos: miniaturas com ✕ para tirar e o andamento de cada uma -->
+        <div class="multi-preview" id="multiPreview" hidden></div>
       </div>
+      <p class="multi-info" id="multiInfo" hidden></p>
 
       <!-- Prévia com moldura (a foto vai para a galeria sem moldura) -->
       <div class="frame-panel" id="uploadFrame" hidden></div>
@@ -270,9 +273,9 @@
       <!-- Input câmera (capture=environment abre direto a câmera traseira) -->
       <input type="file" id="fileInputCamera" accept="image/*" capture="environment"
              aria-label="Tirar foto com câmera" />
-      <!-- Input galeria (sem capture = abre seletor de fotos do celular) -->
-      <input type="file" id="fileInput" accept="image/*"
-             aria-label="Selecionar imagem da galeria" />
+      <!-- Input galeria (sem capture = abre seletor de fotos do celular; "multiple" permite marcar várias) -->
+      <input type="file" id="fileInput" accept="image/*" multiple
+             aria-label="Selecionar fotos da galeria" />
 
       <!-- Nome/apelido opcional -->
       <div class="form-group">
@@ -381,6 +384,6 @@
   <script src="evento.js?v=8"></script>
   <script src="imagem.js?v=8"></script>
   <script src="moldura.js?v=8"></script>
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

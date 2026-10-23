@@ -16,6 +16,7 @@ const GALLERY_POLL_INTERVAL   = 60_000;             // 60 segundos
 const ACTIVITY_EVENTS         = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'wheel', 'touchstart'];
 const FEATURED_FILTER         = '__destaques';
 const MINE_FILTER             = '__minhas';
+const MAX_BATCH               = 10;                 // fotos por envio
 
 /* ============================================================
    Estado
@@ -25,7 +26,8 @@ const state = {
   nextCursor:    null,
   isLoading:     false,
   isUploading:   false,
-  selectedFile:  null,
+  selectedFile:  null,  // a foto, quando há só uma (prévia e moldura usam esta)
+  selectedFiles: [],    // todas as escolhidas: { id, file, url (miniatura), status: wait|sending|ok|err }
   pollTimer:     null,
   sessionTimer:  null,
   authenticated: false,
@@ -413,16 +415,17 @@ function bindEvents() {
   dropArea.addEventListener('drop', (e) => {
     e.preventDefault();
     dropArea.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelected(file);
+    addFiles(e.dataTransfer.files);
   });
 
-  /* Inputs de arquivo */
+  /* Inputs de arquivo (a galeria permite marcar várias; cada escolha soma à lista) */
   $('fileInput').addEventListener('change', () => {
-    if ($('fileInput').files[0]) handleFileSelected($('fileInput').files[0]);
+    addFiles($('fileInput').files);
+    $('fileInput').value = ''; // permite escolher a mesma foto de novo depois de tirar da lista
   });
   $('fileInputCamera').addEventListener('change', () => {
-    if ($('fileInputCamera').files[0]) handleFileSelected($('fileInputCamera').files[0]);
+    addFiles($('fileInputCamera').files);
+    $('fileInputCamera').value = '';
   });
 
   /* Enviar */
@@ -528,10 +531,15 @@ function closeUploadModal() {
 }
 
 function resetUploadModal() {
+  state.selectedFiles.forEach((it) => URL.revokeObjectURL(it.url));
+  state.selectedFiles = [];
   state.selectedFile = null;
   state.isUploading  = false;
   $('previewImg').hidden    = true;
   $('previewImg').src       = '';
+  $('multiPreview').hidden  = true;
+  $('multiPreview').replaceChildren();
+  $('multiInfo').hidden     = true;
   $('dropPlaceholder').hidden = false;
   $('progressWrap').hidden  = true;
   $('progressBar').style.width = '0%';
@@ -546,63 +554,185 @@ function resetUploadModal() {
   const albums = state.config.albums || [];
   const current = albums.some((a) => a.id === state.album) ? state.album : state.config.defaultAlbum;
   $('albumSelect').value = current || '';
-  const btn = $('btnSend');
-  btn.disabled = true;
-  btn.innerHTML = `
+  setSendButton(false, 'Enviar para a galeria');
+}
+
+const SEND_ICON = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <line x1="22" y1="2" x2="11" y2="13"/>
       <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-    </svg>
-    Enviar para a galeria`;
+    </svg>`;
+
+function setSendButton(enabled, label) {
+  const btn = $('btnSend');
+  btn.disabled  = !enabled;
+  btn.innerHTML = `${SEND_ICON} ${label}`;
 }
 
 /* ============================================================
-   SELEÇÃO DE ARQUIVO
+   SELEÇÃO DE ARQUIVOS (uma ou várias)
    ============================================================ */
+/* Mantido para quem escolhe uma foto só (câmera, testes) */
 function handleFileSelected(file) {
-  if (!file.type.startsWith('image/')) {
-    showUploadError('Selecione um arquivo de imagem (JPG, PNG, HEIC, etc.).');
+  addFiles([file]);
+}
+
+function addFiles(fileList) {
+  if (state.isUploading) return;
+  const all    = [...(fileList || [])];
+  const images = all.filter((f) => f.type.startsWith('image/'));
+  if (!images.length) {
+    if (all.length) showUploadError('Selecione um arquivo de imagem (JPG, PNG, HEIC, etc.).');
     return;
   }
-  state.selectedFile = file;
+  // Fotos que já foram (✓) num envio anterior saem da lista; as que falharam continuam
+  dropSentFiles();
+  const room = MAX_BATCH - state.selectedFiles.length;
+  if (room <= 0) { showToast(`Máximo de ${MAX_BATCH} fotos por envio.`); return; }
+  images.slice(0, room).forEach((file) => {
+    state.selectedFiles.push({ id: Math.random().toString(36).slice(2), file, url: URL.createObjectURL(file), status: 'wait' });
+  });
+  if (images.length > room) showToast(`Só cabem ${MAX_BATCH} fotos por envio — ${images.length - room} ficaram de fora.`, 4000);
   $('uploadError').hidden = true;
-  state.uploadFrame = { source: null, canvas: null, token: state.uploadFrame.token + 1, preview: '' };
-  uploadFrameCtl.reset();
-  $('btnShareFramedUpload').hidden = true;
+  renderSelection();
+}
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    state.uploadFrame.preview = e.target.result;
-    $('previewImg').src    = e.target.result;
-    $('previewImg').hidden = false;
-    $('dropPlaceholder').hidden = true;
-    $('uploadFrame').hidden = !state.config.framesEnabled;
-  };
-  reader.readAsDataURL(file);
-  $('btnSend').disabled = false;
+function dropSentFiles() {
+  state.selectedFiles.filter((it) => it.status === 'ok').forEach((it) => URL.revokeObjectURL(it.url));
+  state.selectedFiles = state.selectedFiles.filter((it) => it.status !== 'ok');
+}
+
+function removeFile(id) {
+  if (state.isUploading) return;
+  const it = state.selectedFiles.find((x) => x.id === id);
+  if (it) URL.revokeObjectURL(it.url);
+  state.selectedFiles = state.selectedFiles.filter((x) => x.id !== id);
+  renderSelection();
+}
+
+/* Uma foto: prévia grande + moldura (como antes). Várias: grade de miniaturas. */
+function renderSelection() {
+  const items = state.selectedFiles;
+  const n = items.length;
+  const single = n === 1;
+  const previous = state.selectedFile;
+  state.selectedFile = single ? items[0].file : null;
+
+  $('dropPlaceholder').hidden = n > 0;
+  $('multiPreview').hidden    = n < 2;
+  $('multiInfo').hidden       = n < 2;
+  if (!single) {
+    $('previewImg').hidden = true;
+    $('uploadFrame').hidden = true;
+    $('btnShareFramedUpload').hidden = true;
+    uploadFrameCtl.reset();
+  }
+
+  if (single && previous !== items[0].file) {
+    state.uploadFrame = { source: null, canvas: null, token: state.uploadFrame.token + 1, preview: '' };
+    uploadFrameCtl.reset();
+    $('btnShareFramedUpload').hidden = true;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (state.selectedFile !== items[0].file) return; // mudou a seleção enquanto lia
+      state.uploadFrame.preview = e.target.result;
+      $('previewImg').src    = e.target.result;
+      $('previewImg').hidden = false;
+      $('uploadFrame').hidden = !state.config.framesEnabled;
+    };
+    reader.readAsDataURL(items[0].file);
+  }
+
+  if (n >= 2) {
+    $('multiPreview').replaceChildren(...items.map((it) => {
+      const cell = document.createElement('div');
+      cell.className = `multi-item is-${it.status}`;
+      const img = Object.assign(document.createElement('img'), { src: it.url, alt: '' });
+      cell.appendChild(img);
+      if (!state.isUploading && (it.status === 'wait' || it.status === 'err')) {
+        const rm = Object.assign(document.createElement('button'), { type: 'button', className: 'multi-remove', textContent: '✕' });
+        rm.setAttribute('aria-label', 'Tirar esta foto do envio');
+        rm.addEventListener('click', (e) => { e.stopPropagation(); removeFile(it.id); });
+        cell.appendChild(rm);
+      }
+      const badge = { sending: '⏳', ok: '✓', err: '⚠' }[it.status];
+      if (badge) cell.appendChild(Object.assign(document.createElement('span'), { className: 'multi-status', textContent: badge }));
+      return cell;
+    }));
+    const left = MAX_BATCH - n;
+    $('multiInfo').textContent = `${n} fotos selecionadas · toque no ✕ para tirar${left > 0 ? ` · cabem mais ${left}` : ''}`;
+  }
+
+  const pending = items.filter((it) => it.status !== 'ok').length;
+  if (!state.isUploading) {
+    const failed = items.some((it) => it.status === 'err');
+    setSendButton(pending > 0, failed ? 'Tentar novamente' : pending > 1 ? `Enviar ${pending} fotos para a galeria` : 'Enviar para a galeria');
+  }
 }
 
 /* ============================================================
    UPLOAD PARA O CLOUDINARY
    ============================================================ */
+/* Envia todas as fotos escolhidas, uma por vez (as que já foram ficam com ✓ e não repetem) */
 async function uploadPhoto() {
-  if (!state.selectedFile || state.isUploading) return;
+  const queue = state.selectedFiles.filter((it) => it.status !== 'ok');
+  if (!queue.length || state.isUploading) return;
   if (CLOUDINARY_CLOUD_NAME === 'SEU_CLOUD_NAME') {
     showUploadError('Configure as credenciais do Cloudinary no arquivo app.js.');
     return;
   }
 
   state.isUploading = true;
-  const btnSend = $('btnSend');
-  btnSend.disabled = true;
-  btnSend.innerHTML = '<div class="spinner" style="width:22px;height:22px;border-width:3px"></div> Enviando…';
+  $('btnSend').disabled = true;
+  $('btnSend').innerHTML = '<div class="spinner" style="width:22px;height:22px;border-width:3px"></div> Enviando…';
   $('uploadError').hidden = true;
   $('progressWrap').hidden = false;
   setProgress(0, 'Preparando…');
 
-  setProgress(5, 'Convertendo para JPEG…');
-  const prepared = prepareForUpload(state.selectedFile); // conversão/compressão em imagem.js
+  const total = queue.length;
+  let sent = 0;
+  for (const [i, item] of queue.entries()) {
+    item.status = 'sending';
+    renderSelection();
+    const label = total > 1 ? `Enviando ${i + 1} de ${total}…` : 'Enviando…';
+    try {
+      await sendOnePhoto(item.file, (frac) => {
+        const pct = Math.round(((i + frac) / total) * 100);
+        setProgress(Math.min(99, pct), total > 1 ? `${label} ${pct}%` : `${label} ${pct}%`);
+      });
+      item.status = 'ok';
+      sent++;
+    } catch (err) {
+      item.status = 'err';
+      item.error  = err.message;
+    }
+    saveActivity(); // envio longo conta como uso do app
+  }
+
+  state.isUploading = false;
+  const failed = queue.filter((it) => it.status === 'err');
+  if (!failed.length) {
+    setProgress(100, 'Concluído!');
+    const what = sent > 1 ? `${sent} fotos enviadas` : 'Foto enviada';
+    showToast(state.config.moderation
+      ? `🎉 ${what}! Aparecem na galeria depois da aprovação.`
+      : `🎉 ${what}! Aparecendo na galeria…`, 4000);
+    closeUploadModal();
+  } else {
+    renderSelection();
+    showUploadError(sent
+      ? `${sent} de ${total} enviadas. ${failed.length} com erro (${failed[0].error || 'falha'}) — toque em "Tentar novamente".`
+      : (failed[0].error || 'Erro ao enviar. Tente novamente.'));
+  }
+  // A busca do Cloudinary leva alguns segundos para indexar a foto nova
+  if (sent) setTimeout(() => { state.photos = []; state.nextCursor = null; loadPhotos(false, true); }, 5000);
+}
+
+/* Converte/comprime (imagem.js) e envia uma foto ao Cloudinary; onProgress recebe de 0 a 1 */
+async function sendOnePhoto(file, onProgress) {
+  onProgress(0.05);
+  const prepared = prepareForUpload(file);
 
   const author    = $('authorName').value.trim() || 'Participante';
   const authorTag = 'autor_' + author.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30);
@@ -621,50 +751,28 @@ async function uploadPhoto() {
 
   const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-  try {
-    formData.append('file', await prepared);
-    await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 90), `Enviando… ${Math.round((e.loaded / e.total) * 90)}%`);
-      });
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          setProgress(100, 'Concluído!');
-          resolve(JSON.parse(xhr.responseText));
-        } else {
-          let msg = `Erro ${xhr.status}`;
-          try { const b = JSON.parse(xhr.responseText); if (b.error?.message) msg = b.error.message; } catch (_) {}
-          reject(new Error(msg));
-        }
-      });
-      xhr.addEventListener('error', () => reject(new Error('Falha de conexão.')));
-      xhr.addEventListener('abort', () => reject(new Error('Upload cancelado.')));
-      xhr.open('POST', url);
-      xhr.send(formData);
+  formData.append('file', await prepared);
+  onProgress(0.1);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) onProgress(0.1 + (e.loaded / e.total) * 0.85);
     });
-
-    state.isUploading = false;
-    saveActivity();
-    showToast(state.config.moderation
-      ? '🎉 Foto enviada! Ela aparece na galeria depois da aprovação.'
-      : '🎉 Foto enviada! Aparecendo na galeria…', 4000);
-    closeUploadModal();
-    // A busca do Cloudinary leva alguns segundos para indexar a foto nova
-    setTimeout(() => { state.photos = []; state.nextCursor = null; loadPhotos(false, true); }, 5000);
-
-  } catch (err) {
-    showUploadError(err.message || 'Erro ao enviar. Tente novamente.');
-    state.isUploading = false;
-    btnSend.disabled  = false;
-    btnSend.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="22" y1="2" x2="11" y2="13"/>
-        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-      </svg>
-      Tentar novamente`;
-  }
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(1);
+        resolve(JSON.parse(xhr.responseText));
+      } else {
+        let msg = `Erro ${xhr.status}`;
+        try { const b = JSON.parse(xhr.responseText); if (b.error?.message) msg = b.error.message; } catch (_) {}
+        reject(new Error(msg));
+      }
+    });
+    xhr.addEventListener('error', () => reject(new Error('Falha de conexão.')));
+    xhr.addEventListener('abort', () => reject(new Error('Upload cancelado.')));
+    xhr.open('POST', url);
+    xhr.send(formData);
+  });
 }
 
 function setProgress(pct, label) {
