@@ -1305,3 +1305,40 @@ body:has(.modal-overlay:not([hidden])) .admin-corner { display: none; }
 .progress-wrap { overflow: visible; margin-top: 26px; }
 .progress-bar  { border-radius: 50px; }
 .progress-label { font-weight: 600; color: var(--text-muted); }
+
+/* ---------- Votação (2 fotos favoritas) ---------- */
+.vote-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 10px 16px 0; padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--soft-orange); border: 1.5px solid var(--soft-orange-border);
+  font-size: .85rem; color: var(--text);
+}
+.vote-bar strong { color: var(--orange); }
+.vote-count {
+  flex-shrink: 0; font-weight: 800; font-size: .8rem;
+  background: var(--orange); color: var(--white); border-radius: 20px; padding: 3px 10px;
+}
+.vote-bar.done .vote-count { background: #1a7f45; }
+
+.vote-btn {
+  position: absolute; top: 6px; right: 6px; z-index: 1;
+  width: 38px; height: 38px; border-radius: 50%; border: 0;
+  background: rgba(255,255,255,.88); font-size: 1.05rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  transition: transform var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.vote-btn:active { transform: scale(.88); }
+.vote-btn.voted { background: var(--white); animation: vote-pop .35s ease; }
+@keyframes vote-pop { 50% { transform: scale(1.25); } }
+
+.btn-vote {
+  align-self: stretch;
+  font-family: inherit; font-size: .92rem; font-weight: 800;
+  border: 0; border-radius: 50px; padding: 12px 18px; min-height: 46px; cursor: pointer;
+  background: rgba(255,255,255,.12); color: var(--white); border: 1.5px solid rgba(255,255,255,.35);
+}
+.btn-vote.voted { background: #ff4f8b; border-color: #ff4f8b; }
+.btn-vote:disabled { opacity: .55; cursor: default; }

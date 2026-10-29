@@ -436,3 +436,22 @@ input[type="email"]:focus { border-color: var(--blue); }
 .btn-theme svg { width: 20px; height: 20px; }
 .header-actions { align-items: center; }
 .btn-theme-floating { position: fixed; top: 14px; right: 14px; z-index: 50; }
+
+/* ---------- Votação ---------- */
+.vote-card { margin-bottom: 16px; }
+.vote-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.vote-head h3 { margin: 0; }
+.badge.vote-open { background: #d9f5e3; color: #1a7f45; }
+.badge.votes { background: #ffe0ec; color: #c2185b; }
+.vote-card > .muted { margin: 8px 0 12px; }
+.vote-ranking { list-style: none; display: grid; gap: 8px; margin-bottom: 14px; }
+.vote-row { display: grid; grid-template-columns: 44px 56px 1fr auto; align-items: center; gap: 12px; padding: 6px 10px; border-radius: 12px; background: var(--bg); }
+.vote-row.top { background: color-mix(in srgb, var(--orange) 12%, var(--surface)); }
+.vote-place { font-size: 1.3rem; text-align: center; font-weight: 800; }
+.vote-row img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; cursor: pointer; display: block; }
+.vote-author { font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vote-info .meter { margin: 6px 0 0; }
+.vote-num { font-size: .9rem; color: var(--brand-text); white-space: nowrap; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge.vote-open { background: #143524; color: #7ee2a8; } :root:not([data-theme="light"]) .badge.votes { background: #3a1626; color: #ff9ec2; } }
+:root[data-theme="dark"] .badge.vote-open { background: #143524; color: #7ee2a8; }
+:root[data-theme="dark"] .badge.votes { background: #3a1626; color: #ff9ec2; }

@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
 </head>
 <body data-title-prefix="JuntaFoto · ">
 
@@ -160,6 +160,12 @@
     <div class="hello-bar" id="helloBar" hidden>
       <span>👋 Olá, <strong id="helloName"></strong>!</span>
       <button type="button" class="btn-text" id="btnChangeName">trocar nome</button>
+    </div>
+
+    <!-- Votação: cada participante escolhe as 2 fotos de que mais gostou -->
+    <div class="vote-bar" id="voteBar" hidden>
+      <span>🗳️ Vote nas <strong>2 fotos</strong> que você mais curtiu!</span>
+      <span class="vote-count" id="voteCount">0 de 2</span>
     </div>
 
     <nav class="album-filters" id="albumFilters" aria-label="Álbuns" hidden></nav>
@@ -353,6 +359,8 @@
         </button>
       </div>
       <button class="btn-link-light" id="btnCaption" hidden>📋 Copiar legenda com hashtags</button>
+      <!-- Voto (até 2 fotos; não aparece nas próprias fotos) -->
+      <button class="btn-vote" id="btnVote" hidden></button>
       <!-- Só aparece nas fotos enviadas por este aparelho -->
       <button class="btn-delete-mine" id="btnDeleteMine" hidden>🗑️ Excluir minha foto</button>
     </div>
@@ -384,6 +392,6 @@
   <script src="evento.js?v=8"></script>
   <script src="imagem.js?v=8"></script>
   <script src="moldura.js?v=8"></script>
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>

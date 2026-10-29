@@ -14,7 +14,7 @@
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=5" />
+  <link rel="stylesheet" href="admin.css?v=6" />
 </head>
 <body data-title-prefix="JuntaFoto Admin · ">
 
@@ -106,6 +106,22 @@
           </div>
         </div>
 
+        <!-- Resultado da votação (cada participante vota em até 2 fotos) -->
+        <div class="card vote-card">
+          <div class="vote-head">
+            <h3>🏆 Votação das melhores fotos</h3>
+            <span class="badge" id="voteStatus"></span>
+          </div>
+          <p class="muted" id="voteSummary"></p>
+          <ol class="vote-ranking" id="voteRanking"></ol>
+          <div class="quick-actions">
+            <button class="btn" id="btnVoteToggle"></button>
+            <button class="btn" id="btnVoteAll">Ver todas por votos</button>
+            <button class="btn" id="btnVoteRefresh">↻ Atualizar resultado</button>
+            <button class="btn btn-danger" id="btnVoteReset">Zerar votação…</button>
+          </div>
+        </div>
+
         <div class="cards-row">
           <div class="card">
             <h3>Quem mais enviou</h3>
@@ -134,6 +150,7 @@
             <option value="new">Mais recentes</option>
             <option value="old">Mais antigas</option>
             <option value="author">Autor (A–Z)</option>
+            <option value="votes">Mais votadas</option>
           </select>
           <button class="btn btn-primary" id="btnUpload">⬆️ Enviar fotos</button>
           <button class="btn" id="btnReload" title="Recarregar do Cloudinary">↻</button>
@@ -255,6 +272,7 @@
           <h3>Envio de fotos</h3>
           <label class="switch"><input type="checkbox" id="sUploadsOpen" /> <span>Envios abertos (participantes podem enviar fotos)</span></label>
           <label class="switch"><input type="checkbox" id="sModeration" /> <span>Moderação: novas fotos só aparecem na galeria depois de aprovadas</span></label>
+          <label class="switch"><input type="checkbox" id="sVoting" /> <span>Votação aberta (cada participante vota em até 2 fotos)</span></label>
 
           <label for="sDefaultAlbum">Álbum padrão para novos envios</label>
           <select id="sDefaultAlbum"></select>
@@ -451,6 +469,6 @@
   <script src="imagem.js?v=8"></script>
   <script src="moldura.js?v=8"></script>
   <script src="colagem.js?v=2"></script>
-  <script src="admin.js?v=5"></script>
+  <script src="admin.js?v=6"></script>
 </body>
 </html>

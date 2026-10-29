@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
    CONFIGURAÇÕES DO EVENTO
    ============================================================ */
 async function loadConfig() {
+  const votingBefore = `${state.config.votingOpen}|${state.config.votingRound}`;
   try {
     const ctrl = new AbortController();
     const t    = setTimeout(() => ctrl.abort(), 5000);
@@ -113,6 +114,8 @@ async function loadConfig() {
     clearTimeout(t);
     if (res.ok) state.config = { ...state.config, ...(await res.json()) };
   } catch (_) { /* sem servidor: usa os valores padrão */ }
+  // O admin abriu/fechou ou zerou a votação: redesenha os corações
+  if (state.authenticated && votingBefore !== `${state.config.votingOpen}|${state.config.votingRound}`) renderGallery();
   applyEventTheme(state.config.event); // nome, cores e logo do evento (evento.js)
   // Atualiza as molduras disponíveis, sem atrapalhar quem está com uma moldura aberta
   if (!viewerFrameCtl?.on) viewerFrameCtl?.setFrames(state.config.frames);
@@ -194,6 +197,82 @@ const isMine = (photo) => !!profile && !!photo.owner && photo.owner === profile.
 function renderHello() {
   $('helloBar').hidden = !profile;
   if (profile) $('helloName').textContent = profile.name;
+  updateVoteUI();
+}
+
+/* ============================================================
+   VOTAÇÃO — cada aparelho vota em até 2 fotos (o servidor garante o limite)
+   Os votos deste aparelho ficam guardados por evento e por rodada.
+   ============================================================ */
+const VOTE_SLOTS = 2;
+const canVote = () => !!profile && state.config.votingOpen !== false;
+const votesKey = () => `jf_votes_${state.config.event?.tag || 'evento'}_${state.config.votingRound || 1}`;
+
+function getVotes() {
+  try {
+    const v = JSON.parse(localStorage.getItem(votesKey()) || '[]');
+    return Array.from({ length: VOTE_SLOTS }, (_, i) => (typeof v[i] === 'string' ? v[i] : null));
+  } catch (_) { return [null, null]; }
+}
+
+function saveVotes(v) {
+  try { localStorage.setItem(votesKey(), JSON.stringify(v)); } catch (_) { /* vale só nesta visita */ }
+}
+
+async function toggleVote(photo) {
+  if (!canVote() || isMine(photo) || state.voteBusy) return;
+  const votes = getVotes();
+  const voted = votes.indexOf(photo.id);
+  const slot  = voted >= 0 ? voted : votes.indexOf(null);
+  if (slot < 0) {
+    showToast('Você já usou seus 2 votos. Toque num ❤️ para tirar um voto e escolher outra foto.', 4500);
+    return;
+  }
+  state.voteBusy = true;
+  try {
+    const res = await fetch('/api/vote', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ action: voted >= 0 ? 'unvote' : 'vote', id: photo.id, slot, secret: profile.secret }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.closed) { state.config.votingOpen = false; renderGallery(); }
+    if (!res.ok) throw new Error(data.error || `Erro ${res.status}`);
+    votes[slot] = voted >= 0 ? null : photo.id;
+    saveVotes(votes);
+    const used = votes.filter(Boolean).length;
+    showToast(voted >= 0 ? 'Voto retirado.' : used >= VOTE_SLOTS ? '❤️ Voto registrado! Você usou seus 2 votos.' : '❤️ Voto registrado! Falta 1.');
+  } catch (err) {
+    showToast(err.message || 'Não foi possível votar agora. Tente de novo.', 4000);
+  } finally {
+    state.voteBusy = false;
+    updateVoteUI();
+  }
+}
+
+/* Atualiza a barra, os corações da grade e o botão da foto aberta */
+function updateVoteUI() {
+  const open  = canVote();
+  const votes = getVotes();
+  const used  = votes.filter(Boolean).length;
+  $('voteBar').hidden = !open;
+  $('voteCount').textContent = `${used} de ${VOTE_SLOTS}`;
+  $('voteBar').classList.toggle('done', used >= VOTE_SLOTS);
+  document.querySelectorAll('.vote-btn').forEach((b) => {
+    const on = votes.includes(b.dataset.id);
+    b.classList.toggle('voted', on);
+    b.textContent = on ? '❤️' : '🤍';
+    b.setAttribute('aria-label', on ? 'Tirar meu voto desta foto' : 'Votar nesta foto');
+  });
+  const p = state.viewer?.photo;
+  const btn = $('btnVote');
+  btn.hidden = !open || !p || isMine(p);
+  if (!btn.hidden) {
+    const on = votes.includes(p.id);
+    btn.classList.toggle('voted', on);
+    btn.textContent = on ? '❤️ Seu voto · tocar para tirar' : `🤍 Votar nesta foto (${VOTE_SLOTS - used} ${VOTE_SLOTS - used === 1 ? 'voto restante' : 'votos restantes'})`;
+    btn.disabled = !on && used >= VOTE_SLOTS;
+  }
 }
 
 /* Exclui uma foto que este aparelho enviou */
@@ -384,6 +463,9 @@ function bindEvents() {
 
   /* Excluir uma foto própria */
   $('btnDeleteMine').addEventListener('click', deleteMyPhoto);
+
+  /* Votar na foto aberta */
+  $('btnVote').addEventListener('click', () => { if (state.viewer.photo) toggleVote(state.viewer.photo); });
 
   /* Abrir modal de upload */
   $('btnUploadHeader').addEventListener('click', openUploadModal);
@@ -879,6 +961,14 @@ function renderGallery(appended = null) {
       mine.className   = 'gallery-item-mine';
       mine.textContent = 'Você';
       item.appendChild(mine);
+    } else if (canVote()) {
+      // Coração para votar direto na grade (não aparece nas próprias fotos)
+      const heart = document.createElement('button');
+      heart.type = 'button';
+      heart.className = 'vote-btn';
+      heart.dataset.id = photo.id;
+      heart.addEventListener('click', (e) => { e.stopPropagation(); toggleVote(photo); });
+      item.appendChild(heart);
     }
 
     item.appendChild(img);
@@ -887,6 +977,7 @@ function renderGallery(appended = null) {
     item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openViewer(photo); });
     grid.appendChild(item);
   });
+  updateVoteUI(); // pinta os corações conforme os votos deste aparelho
 }
 
 /* ============================================================
@@ -909,6 +1000,7 @@ function openViewer(photo) {
   $('viewerFrame').hidden = !state.config.framesEnabled;
   $('btnCaption').hidden  = !state.config.framesEnabled;
   $('btnDeleteMine').hidden = !isMine(photo); // só nas fotos enviadas por este aparelho
+  updateVoteUI();
   $('viewerModal').hidden = false;
   document.body.style.overflow = 'hidden';
 }

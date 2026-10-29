@@ -48,6 +48,8 @@ const DEFAULT_CONFIG = {
     { id: 'stories',  name: 'Stories',  base: 'stories',  primary: '', accent: '', title: '', subtitle: '', badgeText: 'EU FUI!', enabled: true },
   ],
   adminEmails: [], // vazio: o primeiro login com a senha certa cadastra o e-mail
+  votingOpen:  true, // participantes podem votar nas 2 fotos favoritas
+  votingRound: 1,    // "zerar votação" começa uma rodada nova (os votos antigos deixam de contar)
 };
 
 const FRAME_BASES = ['classica', 'polaroid', 'stories'];
@@ -109,6 +111,8 @@ function normalizeConfig(c = {}) {
     moderation:     !!c.moderation,
     defaultAlbum:   String(c.defaultAlbum || ''),
     framesEnabled:  c.framesEnabled !== false,
+    votingOpen:     c.votingOpen !== false,
+    votingRound:    Math.min(9999, Math.max(1, parseInt(c.votingRound, 10) || 1)),
     hashtags:       String(c.hashtags ?? DEFAULT_CONFIG.hashtags).trim().slice(0, 120),
     shareCaption:   String(c.shareCaption ?? DEFAULT_CONFIG.shareCaption).trim().slice(0, 500),
     event:          normalizeEvent(c.event),
@@ -171,6 +175,8 @@ function publicConfig(c) {
     framesEnabled:  c.framesEnabled,
     hashtags:       c.hashtags,
     shareCaption:   c.shareCaption,
+    votingOpen:     c.votingOpen,
+    votingRound:    c.votingRound,
     event:          c.event,
     frames:         c.frames.filter((f) => f.enabled).map(({ enabled, ...f }) => f),
     albums,
@@ -180,10 +186,32 @@ function publicConfig(c) {
 /* ============================================================
    FOTOS
    ============================================================ */
-function parsePhoto(r) {
+/* ── Votação: cada aparelho tem 2 "vagas" de voto, cada uma é uma tag exclusiva (só pode estar em UMA foto).
+   Formato: v<rodada>s<vaga>_<votante>, votante = 24 primeiros caracteres da impressão digital do aparelho. */
+const VOTE_SLOTS = 2;
+const voteTag = (round, slot, voter) => `v${round}s${slot}_${voter}`;
+const voterIdFromSecret = (secret) => ownerHash(secret).slice(0, 24);
+
+/* Votantes distintos de uma foto na rodada atual (sem contar quem enviou a própria foto) */
+function photoVoters(tags, round, owner) {
+  const re = new RegExp(`^v${round}s[0-9]+_([0-9a-f]{24})$`);
+  const voters = new Set();
+  for (const t of tags) {
+    const m = re.exec(t);
+    if (m && m[1] !== (owner || '').slice(0, 24)) voters.add(m[1]);
+  }
+  return [...voters];
+}
+
+/* round: rodada da votação — só o painel pede os votos (a galeria pública não mostra contagem) */
+function parsePhoto(r, round = null) {
   const ctx  = r.context?.custom || r.context || {};
   const tags = r.tags || [];
+  const owner = /^[0-9a-f]{64}$/.test(ctx.owner || '') ? ctx.owner : '';
+  const votes = round ? { voters: photoVoters(tags, round, owner) } : {};
+  if (votes.voters) votes.votes = votes.voters.length;
   return {
+    ...votes,
     id:        r.public_id,
     url:       r.secure_url,
     width:     r.width,
@@ -192,7 +220,7 @@ function parsePhoto(r) {
     createdAt: r.created_at,
     author:    safeDecode(ctx.author) || 'Participante',
     caption:   ctx.caption || '',
-    owner:     /^[0-9a-f]{64}$/.test(ctx.owner || '') ? ctx.owner : '', // impressão digital (SHA-256) da chave do aparelho que enviou
+    owner,     // impressão digital (SHA-256) da chave do aparelho que enviou
     angle:     parseInt(ctx.angle, 10) || 0,
     hidden:    tags.includes(TAG_HIDDEN),
     pending:   tags.includes(TAG_PENDING),
@@ -208,7 +236,7 @@ function safeDecode(value) {
 }
 
 /* Busca as fotos do evento (tag = config.event.tag) */
-async function searchPhotos(eventTag, expression, { cursor, maxResults = 60 } = {}) {
+async function searchPhotos(eventTag, expression, { cursor, maxResults = 60, round = null } = {}) {
   let q = cloudinary.search
     .expression(`resource_type:image AND tags=${eventTag}${expression ? ' AND ' + expression : ''}`)
     .sort_by('created_at', 'desc')
@@ -217,7 +245,7 @@ async function searchPhotos(eventTag, expression, { cursor, maxResults = 60 } = 
     .with_field('tags');
   if (cursor) q = q.next_cursor(cursor);
   const r = await q.execute();
-  return { photos: (r.resources || []).map(parsePhoto), nextCursor: r.next_cursor || null, total: r.total_count || 0 };
+  return { photos: (r.resources || []).map((x) => parsePhoto(x, round)), nextCursor: r.next_cursor || null, total: r.total_count || 0 };
 }
 
 /* ============================================================
@@ -264,7 +292,7 @@ function ownerHash(secret) {
 }
 
 module.exports = {
-  ownerHash, parsePhoto,
+  ownerHash, parsePhoto, VOTE_SLOTS, voteTag, voterIdFromSecret,
   cloudinary, TAG_HIDDEN, TAG_PENDING, TAG_FEATURED, ALBUM_PREFIX,
   isConfigured, missingEnv, readConfig, writeConfig, normalizeConfig, publicConfig,
   searchPhotos, createToken, verifyToken, safeEqual, sendError, sleep,

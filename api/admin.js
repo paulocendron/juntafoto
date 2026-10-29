@@ -26,7 +26,7 @@ const actions = {
     const photos = [];
     let cursor;
     do {
-      const r = await searchPhotos(config.event.tag, '', { cursor, maxResults: 500 });
+      const r = await searchPhotos(config.event.tag, '', { cursor, maxResults: 500, round: config.votingRound }); // com a contagem de votos
       photos.push(...r.photos);
       cursor = r.nextCursor;
     } while (cursor && photos.length < MAX_LIST);

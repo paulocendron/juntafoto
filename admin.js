@@ -164,6 +164,12 @@ function bindEvents() {
   $('qaCsv').addEventListener('click', exportCsv);
   $('qaToggleUploads').addEventListener('click', () => saveConfig({ uploadsOpen: !S.config.uploadsOpen }));
 
+  /* Votação */
+  $('btnVoteToggle').addEventListener('click', () => saveConfig({ votingOpen: !S.config.votingOpen }));
+  $('btnVoteAll').addEventListener('click', () => { $('fSort').value = 'votes'; filterAndShow({}); });
+  $('btnVoteRefresh').addEventListener('click', loadAll);
+  $('btnVoteReset').addEventListener('click', resetVoting);
+
   /* Fotos */
   ['fSearch', 'fAlbum', 'fStatus', 'fSort'].forEach((id) => $(id).addEventListener('input', () => { S.renderLimit = RENDER_STEP; renderPhotos(); }));
   $('btnUpload').addEventListener('click', openUpload);
@@ -330,6 +336,7 @@ function renderAll() {
   applyEventTheme(S.config.event); // o painel também usa as cores do evento
   renderAlbumSelects();
   renderOverview();
+  renderVoting();
   renderPhotos();
   renderAlbums();
   renderSettings();
@@ -371,6 +378,7 @@ function renderOverview() {
     ['Enviadas hoje',           P.filter((p) => new Date(p.createdAt).toDateString() === today).length, null],
     ['Participantes',           authors.size,                               null],
     ['Álbuns',                  S.config.albums.length,                     null],
+    ['Votos',                   P.reduce((s, p) => s + (p.votes || 0), 0), null],
   ];
   $('stats').replaceChildren(...stats.map(([label, value, filter, warn]) =>
     h('button', {
@@ -438,6 +446,7 @@ function applyFilters() {
   if (sort === 'old')    list.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   if (sort === 'new')    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   if (sort === 'author') list.sort((a, b) => a.author.localeCompare(b.author, 'pt-BR'));
+  if (sort === 'votes')  list.sort((a, b) => (b.votes || 0) - (a.votes || 0) || b.createdAt.localeCompare(a.createdAt));
   return list;
 }
 
@@ -446,6 +455,7 @@ function photoBadges(p) {
     p.pending  && h('span', { class: 'badge pending',  text: 'Pendente' }),
     p.hidden   && h('span', { class: 'badge hidden',   text: 'Oculta' }),
     p.featured && h('span', { class: 'badge featured', text: '⭐ Destaque' }),
+    p.votes > 0 && h('span', { class: 'badge votes', text: `❤️ ${p.votes}` }),
     ...p.albums.map((id) => h('span', { class: 'badge album', text: albumName(id) })),
   ].filter(Boolean);
 }
@@ -639,6 +649,7 @@ function fillEditor() {
     h('dt', { text: 'Enviada' }),    h('dd', { text: formatDate(p.createdAt) }),
     h('dt', { text: 'Tamanho' }),    h('dd', { text: `${p.width} × ${p.height} · ${formatBytes(p.bytes)}` }),
     h('dt', { text: 'Na galeria' }), h('dd', { text: isPublic(p) ? 'Sim' : 'Não' }),
+    h('dt', { text: 'Votos' }),      h('dd', { text: String(p.votes || 0) }),
     h('dt', { text: 'ID' }),         h('dd', { text: p.id }),
   );
   $('edDownload').href = photoUrl(p, 'fl_attachment', S.editAngle);
@@ -847,6 +858,7 @@ function renderSettings() {
   $('sSession').value         = c.sessionMinutes;
   $('sUploadsOpen').checked   = c.uploadsOpen;
   $('sModeration').checked    = c.moderation;
+  $('sVoting').checked        = c.votingOpen;
   $('sDefaultAlbum').value    = c.defaultAlbum;
   $('sFrames').checked        = c.framesEnabled;
   $('sHashtags').value        = c.hashtags;
@@ -861,6 +873,7 @@ async function saveSettings(e) {
     sessionMinutes: parseInt($('sSession').value, 10),
     uploadsOpen:    $('sUploadsOpen').checked,
     moderation:     $('sModeration').checked,
+    votingOpen:     $('sVoting').checked,
     defaultAlbum:   $('sDefaultAlbum').value,
     framesEnabled:  $('sFrames').checked,
     hashtags:       $('sHashtags').value.trim(),
@@ -1365,5 +1378,53 @@ async function saveFrame(e) {
   if (await updateFrames(frames)) {
     closeModal($('frameModal'));
     toast('Moldura salva! Os participantes veem em até 1 minuto.');
+  }
+}
+
+/* ============================================================
+   VOTAÇÃO — resultado (cada participante vota em até 2 fotos)
+   ============================================================ */
+function renderVoting() {
+  const open   = S.config.votingOpen;
+  const ranked = S.photos.filter((p) => p.votes > 0).sort((a, b) => b.votes - a.votes || b.createdAt.localeCompare(a.createdAt));
+  const voters = new Set(S.photos.flatMap((p) => p.voters || []));
+  const total  = ranked.reduce((s, p) => s + p.votes, 0);
+
+  $('voteStatus').textContent = open ? 'Aberta' : 'Encerrada';
+  $('voteStatus').className   = `badge ${open ? 'vote-open' : 'hidden'}`;
+  $('btnVoteToggle').textContent = open ? '⏸️ Encerrar votação' : '▶️ Abrir votação';
+  $('voteSummary').textContent = total
+    ? `${plural(total, 'voto', 'votos')} de ${plural(voters.size, 'participante', 'participantes')} · rodada ${S.config.votingRound}`
+    : (open ? 'Ainda não há votos. Os participantes votam tocando no ❤️ das fotos.' : 'Nenhum voto nesta rodada.');
+
+  // Posição com empate: fotos com o mesmo número de votos ficam na mesma colocação
+  let place = 0, last = null;
+  $('voteRanking').replaceChildren(...ranked.slice(0, 10).map((p, i) => {
+    if (p.votes !== last) { place = i + 1; last = p.votes; }
+    const medal = { 1: '🥇', 2: '🥈', 3: '🥉' }[place] || `${place}º`;
+    const pct = Math.round((p.votes / ranked[0].votes) * 100);
+    return h('li', { class: 'vote-row' + (place <= 2 ? ' top' : '') },
+      h('span', { class: 'vote-place', text: medal }),
+      h('img', { src: thumbUrl(p, 120), alt: `Foto de ${p.author}`, loading: 'lazy', onclick: () => openEditor(ranked, i) }),
+      h('div', { class: 'vote-info' },
+        h('div', { class: 'vote-author', text: p.author + (p.hidden || p.pending ? ' (fora da galeria)' : '') }),
+        h('div', { class: 'meter' }, h('div', { style: `width:${pct}%` }))),
+      h('strong', { class: 'vote-num', text: plural(p.votes, 'voto', 'votos') }));
+  }));
+  $('btnVoteAll').hidden = ranked.length === 0;
+}
+
+async function resetVoting() {
+  const r = await confirmDialog({
+    title:   'Zerar a votação?',
+    message: 'Todos os votos atuais deixam de contar e os participantes podem votar de novo em 2 fotos. Não tem como desfazer.',
+    okText:  'Zerar votação',
+    danger:  true,
+  });
+  if (!r) return;
+  if (await saveConfig({ votingRound: (S.config.votingRound || 1) + 1 })) {
+    S.photos.forEach((p) => { p.votes = 0; p.voters = []; });
+    renderAll();
+    toast('Votação zerada. Nova rodada começou.');
   }
 }
