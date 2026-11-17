@@ -20,7 +20,7 @@ const ALBUM_PREFIX = 'album_';
 /* ── Configurações editáveis pelo admin (arquivo privado no Cloudinary) ── */
 const CONFIG_ID = 'juntafoto_config/config.json';
 const DEFAULT_CONFIG = {
-  accessPassword: process.env.ACCESS_PASSWORD || 'conexao2026',
+  accessPassword: process.env.ACCESS_PASSWORD || 'fechado2026',
   sessionMinutes: 15,
   uploadsOpen:    true,
   moderation:     false,
